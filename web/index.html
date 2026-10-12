@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Danh thiếp</title>
+  <meta name="theme-color" content="#0b6bcb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Danh thiếp">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Danh sách -->
+  <section id="view-list" class="view active">
+    <header class="bar">
+      <h1>Danh thiếp</h1>
+      <button class="icon-btn" data-go="settings" aria-label="Cài đặt">⚙︎</button>
+    </header>
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Tìm theo tên, công ty, số điện thoại…" autocomplete="off">
+    </div>
+    <p id="count" class="muted small pad"></p>
+    <ul id="list" class="card-list"></ul>
+    <div id="empty" class="empty hidden">
+      <p>Chưa có danh thiếp nào.</p>
+      <p class="muted">Bấm <b>Chụp danh thiếp</b> để bắt đầu.</p>
+    </div>
+    <div class="fab-row">
+      <label class="btn primary big">
+        📷 Chụp danh thiếp
+        <input id="pick-camera" type="file" accept="image/*" capture="environment" hidden>
+      </label>
+      <label class="btn big">
+        🖼️ Chọn ảnh
+        <input id="pick-library" type="file" accept="image/*" hidden>
+      </label>
+    </div>
+  </section>
+
+  <!-- Kiểm tra / chỉnh sửa -->
+  <section id="view-edit" class="view">
+    <header class="bar">
+      <button class="text-btn" id="edit-cancel">Hủy</button>
+      <h1 id="edit-heading">Danh thiếp mới</h1>
+      <button class="text-btn strong" id="edit-save">Lưu</button>
+    </header>
+    <div class="pad">
+      <div class="photo-wrap">
+        <img id="edit-photo" alt="Ảnh danh thiếp">
+        <button class="small-btn" id="rotate-btn" type="button">↻ Xoay ảnh</button>
+      </div>
+      <div id="ocr-status" class="status hidden"></div>
+
+      <form id="edit-form" autocomplete="off">
+        <label>Họ tên<input name="name"></label>
+        <label>Chức vụ<input name="title"></label>
+        <label>Công ty<input name="company"></label>
+        <label>Di động<input name="mobile" type="tel"></label>
+        <label>Điện thoại<input name="phone" type="tel"></label>
+        <label>Fax<input name="fax" type="tel"></label>
+        <label>Email<input name="email" type="email" autocapitalize="off"></label>
+        <label>Website<input name="website" autocapitalize="off"></label>
+        <label>Địa chỉ<textarea name="address" rows="2"></textarea></label>
+        <label>Ghi chú<textarea name="note" rows="2" placeholder="Gặp ở đâu, dự án nào…"></textarea></label>
+      </form>
+
+      <div id="raw-wrap" class="hidden">
+        <h3>Chữ nhận dạng được</h3>
+        <p class="muted small">Chạm vào một ô ở trên, rồi chạm vào dòng chữ bên dưới để điền vào ô đó.</p>
+        <div id="raw-lines" class="chips"></div>
+        <button class="small-btn" id="reocr-btn" type="button">Nhận dạng lại</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Chi tiết -->
+  <section id="view-detail" class="view">
+    <header class="bar">
+      <button class="text-btn" data-go="list">‹ Danh sách</button>
+      <h1></h1>
+      <button class="text-btn strong" id="detail-edit">Sửa</button>
+    </header>
+    <div class="pad">
+      <img id="detail-photo" class="detail-photo" alt="Ảnh danh thiếp">
+      <h2 id="detail-name"></h2>
+      <p id="detail-sub" class="muted"></p>
+      <div id="detail-fields" class="fields"></div>
+      <div class="actions">
+        <button class="btn primary" id="detail-vcard">👤 Lưu vào Danh bạ</button>
+        <button class="btn danger" id="detail-delete">Xóa danh thiếp</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cài đặt -->
+  <section id="view-settings" class="view">
+    <header class="bar">
+      <button class="text-btn" data-go="list">‹ Xong</button>
+      <h1>Cài đặt</h1>
+      <span></span>
+    </header>
+    <div class="pad">
+      <h3>Nhận dạng chữ (OCR)</h3>
+      <label>Cách nhận dạng
+        <select id="set-engine">
+          <option value="auto">Tự động: VietOCR, nếu lỗi thì dùng Tesseract</option>
+          <option value="server">Chỉ VietOCR (server)</option>
+          <option value="tesseract">Chỉ Tesseract (chạy trên iPhone)</option>
+        </select>
+      </label>
+      <label>Địa chỉ server VietOCR
+        <input id="set-server" type="url" placeholder="Để trống = chính trang này" autocapitalize="off">
+      </label>
+      <label>Mã truy cập (APP_TOKEN, nếu có)
+        <input id="set-token" type="password" autocapitalize="off">
+      </label>
+      <button class="btn" id="test-server">Kiểm tra kết nối server</button>
+      <p id="server-result" class="muted small"></p>
+
+      <h3>Xuất dữ liệu</h3>
+      <button class="btn" id="export-csv">📊 Xuất Excel (CSV)</button>
+      <button class="btn" id="export-vcf">👥 Xuất tất cả sang Danh bạ (vCard)</button>
+
+      <h3>Sao lưu</h3>
+      <p class="muted small">Dữ liệu chỉ nằm trong iPhone này. Hãy sao lưu định kỳ vào ứng dụng Tệp/iCloud Drive.</p>
+      <button class="btn" id="backup">💾 Tạo bản sao lưu</button>
+      <label class="btn">♻️ Khôi phục từ bản sao lưu
+        <input id="restore" type="file" accept=".json,application/json" hidden>
+      </label>
+      <p id="storage-info" class="muted small"></p>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="parser.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
