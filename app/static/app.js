@@ -305,6 +305,7 @@
 
     $('#export-xlsx').addEventListener('click', () => exportFile('xlsx'));
     $('#export-vcf').addEventListener('click', () => exportFile('vcf'));
+    $('#export-calib').addEventListener('click', () => { $('#menu-pop').classList.add('hidden'); exportFile('calib'); });
     $('#menu-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#menu-pop').classList.toggle('hidden'); });
     document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) $('#menu-pop').classList.add('hidden'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', async () => {

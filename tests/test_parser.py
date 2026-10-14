@@ -147,3 +147,18 @@ def test_vietocr_mangled_at_sign():
 
     r = parse_card(_lines("Lê Văn Bình | Email: binh.le Ocesco.com.vn | www.cesco.com.vn"))
     assert r["email"] == "binh.le@cesco.com.vn"
+
+
+def test_pick_line_prefers_rapid_for_numbers_and_email():
+    from app.engine.ocr import pick_line
+
+    # Kết quả thật trên Windows: VietOCR (trái) và RapidOCR (phải) cho cùng một dòng.
+    assert pick_line(("quang.nguyen Dviteccons.vn", 0.9), ("quang.nguyen@viteccons.vn", 0.95))[0] == "quang.nguyen@viteccons.vn"
+    assert pick_line(("08422 3727 3079", 0.9), ("：+842837273079", 0.96))[0] == "：+842837273079"
+    assert pick_line(("MST:0000553779", 0.9), ("MST:0309553779", 0.97))[0] == "MST:0309553779"
+    assert pick_line(("Điện thoại: 08422 3727", 0.9), ("Dienthoai:+842837273079", 0.9))[0] == "Điện thoại: +842837273079"
+    # Dòng chữ tiếng Việt: giữ VietOCR
+    assert pick_line(("Số 6 Đường số 2, Kp.5", 0.9), ("S66Duongs62,Kp.5", 0.9))[0] == "Số 6 Đường số 2, Kp.5"
+    assert pick_line(("Vũ Anh Kim Long", 0.9), ("VuAnhKimLong", 0.99))[0] == "Vũ Anh Kim Long"
+    # RapidOCR không chắc chắn: giữ VietOCR
+    assert pick_line(("0795 688 399", 0.9), ("0795688389", 0.5))[0] == "0795 688 399"

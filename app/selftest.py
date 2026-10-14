@@ -19,7 +19,8 @@ EXPECT = {
 # Chỉ kiểm tra khi dùng VietOCR (đọc được tiếng Việt có dấu).
 EXPECT_VIETOCR = {
     "anh_chup_ban_go.jpg": [{"name": "Nguyen Dang Quang"}],
-    "danh_thiep_dien_tu.png": [{"name": "Vũ Anh Kim Long", "company": "Công Ty TNHH CESCO"}],
+    "danh_thiep_dien_tu.png": [{"name": "Vũ Anh Kim Long", "company": "Công Ty TNHH CESCO",
+                                "phone": "028 3727 3079", "fax": "028 3727 3079"}],
 }
 
 

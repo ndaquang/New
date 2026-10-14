@@ -12,6 +12,7 @@ import cv2
 COLUMNS = [
     "name", "title", "company", "mobile", "phone", "fax", "email", "website", "address", "address2",
     "note", "category", "raw_text", "qr_text", "confidence", "review", "source_file", "crop_method", "batch",
+    "auto_fields",  # kết quả máy tự tách lúc quét (JSON), để so với bản bạn đã sửa
 ]
 EDITABLE = {"name", "title", "company", "mobile", "phone", "fax", "email", "website", "address", "address2", "note", "category", "review"}
 

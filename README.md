@@ -56,6 +56,23 @@ Mỗi lần code được cập nhật, GitHub tự build bản Windows và ch�
 - Với máy scan, có thể xếp nhiều thẻ trên mặt kính, **để cách nhau khoảng 1 cm**.
 - Ảnh từ điện thoại dùng trực tiếp được, không cần cắt trước.
 
+## Hiệu chỉnh để app đọc chính xác hơn
+
+**1. Ảnh đầu vào là quan trọng nhất**
+- Chụp **thẳng, đủ sáng, không lóa đèn**. Thẻ giấy bóng nên chụp nghiêng nhẹ để tránh vệt sáng.
+- Thẻ chiếm khoảng **1/2 đến 2/3 khung hình**. Đừng chụp quá xa, chữ nhỏ sẽ bị mờ.
+- Nền **tối hoặc khác màu thẻ** để app cắt viền chính xác.
+- Máy scan: chọn **300 dpi** và **màu (color)**, đặt các thẻ cách nhau khoảng 1 cm.
+
+**2. App học từ chỗ bạn sửa** (tự động, không cần cài đặt)
+- Đổi **phân loại** của một thẻ: các thẻ sau cùng công ty (cùng tên miền email/website, hoặc cùng tên công ty) sẽ tự vào nhóm đó.
+- Sửa **tên công ty**: các thẻ sau cùng tên miền sẽ tự dùng tên bạn đã sửa.
+- Những gì app đã học nằm trong `Documents\DanhThiep\hoc-tu-sua.json`.
+
+**3. Sửa danh sách phân loại:** vào **⋯ → Sửa danh sách phân loại**, thêm từ khóa đặc trưng của ngành bạn hay gặp (tên viết tắt công ty, sản phẩm…).
+
+**4. Gửi gói hiệu chỉnh để chỉnh quy tắc tách thông tin:** sau khi đã sửa tay các thẻ bị đọc sai, vào **⋯ → Xuất gói hiệu chỉnh**. App tạo file `goi-hieu-chinh_*.zip` gồm ảnh thẻ, chữ máy đọc, kết quả máy tách và kết quả bạn sửa. Gửi file này để điều chỉnh bộ tách thông tin cho đúng với kiểu danh thiếp bạn hay gặp. *(File chứa thông tin liên hệ thật, chỉ gửi cho người bạn tin tưởng.)*
+
 **Dữ liệu được lưu ở `Documents\DanhThiep`:**
 - `danhthiep.db`: toàn bộ danh sách. **Nên sao lưu cả thư mục này định kỳ.**
 - `anh-the\`: ảnh từng thẻ đã cắt.

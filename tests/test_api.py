@@ -68,3 +68,26 @@ def test_process_export_flow(client, tmp_path):
 def test_bad_image(client):
     r = client.post("/api/process", files={"file": ("x.jpg", b"not an image", "image/jpeg")})
     assert r.status_code == 400
+
+
+def test_learning_and_calibration_pack(client):
+    import json
+    import zipfile
+
+    name = "anh_chup_ban_go.jpg"
+    first = client.post("/api/process", files={"file": (name, encode(name, SAMPLES[name]()), "image/jpeg")}).json()["cards"][0]
+    assert first["website"] == "www.viteccons.vn"
+    # Bạn sửa tên công ty và phân loại cho thẻ này
+    client.patch(f"/api/cards/{first['id']}", json={"fields": {"company": "Công ty CP Viteccons", "category": "Tư vấn thiết kế / giám sát / QS"}})
+    # Thẻ sau cùng tên miền tự dùng giá trị đã sửa
+    second = client.post("/api/process", files={"file": (name, encode(name, SAMPLES[name]()), "image/jpeg")}).json()["cards"][0]
+    assert second["company"] == "Công ty CP Viteccons"
+    assert second["category"] == "Tư vấn thiết kế / giám sát / QS"
+
+    res = client.post("/api/export", json={"format": "calib"}).json()
+    with zipfile.ZipFile(res["path"]) as z:
+        items = json.loads(z.read("the-da-sua.json"))
+        mine = next(i for i in items if i["id"] == first["id"])
+        assert set(mine["fields_changed"]) >= {"company", "category"}
+        assert mine["auto"]["company"] == "VITECCONS" and mine["raw_text"]
+        assert f"anh/{first['id']}.jpg" in z.namelist()

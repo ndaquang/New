@@ -1,6 +1,7 @@
 """Tìm dòng chữ (RapidOCR/DBNet) và đọc chữ (VietOCR) trên ảnh danh thiếp."""
 
 import os
+import re
 import sys
 import threading
 import types
@@ -132,6 +133,34 @@ def group_into_lines(items: list[dict]) -> list[dict]:
     return lines
 
 
+VIET_CHARS = re.compile(r"[^\x00-\x7f]")
+
+
+def pick_line(viet: tuple[str, float], rapid: tuple[str, float]) -> tuple[str, float]:
+    """Chọn kết quả tốt hơn cho một dòng: VietOCR (tiếng Việt có dấu) hay RapidOCR (số, email).
+
+    VietOCR hay đọc sai chữ số ("+84 28" -> "08422") và "@" (-> D/O/Q); RapidOCR đọc đúng
+    nhưng không có dấu tiếng Việt và hay dính liền chữ. Nên chỉ dùng RapidOCR cho dòng email
+    và dòng phần lớn là chữ số (điện thoại, fax, mã số thuế).
+    """
+    v_text, _ = viet
+    r_text, r_score = rapid
+    if not r_text or r_score < 0.7:
+        return viet
+    if "@" in r_text and "@" not in v_text and not VIET_CHARS.search(r_text):
+        return rapid
+    body = re.sub(r"\s", "", r_text)
+    digits = sum(ch.isdigit() for ch in body)
+    if digits >= 7 and digits >= 0.5 * len(body):
+        # Giữ nhãn có dấu của VietOCR ("Điện thoại:", "ĐT/Fax:") nếu có, thay phần số.
+        label = re.match(r"^\s*([^\d+(]*?[:：]\s*)", v_text)
+        r_num = re.sub(r"^[^\d+(]*", "", r_text)
+        if label and VIET_CHARS.search(label.group(1)):
+            return label.group(1) + r_num, r_score
+        return r_text, r_score
+    return viet
+
+
 class OCREngine:
     """Gom các mô hình lại một chỗ; nạp một lần, dùng cho mọi ảnh."""
 
@@ -200,7 +229,10 @@ class OCREngine:
             pils = [Image.fromarray(cv2.cvtColor(c, cv2.COLOR_BGR2RGB)) for c in crops_bgr]
             with self._torch.no_grad():
                 texts, probs = self.predictor.predict_batch(pils, return_prob=True)
-            return [(t.strip(), float(p)) for t, p in zip(texts, probs)]
+            viet = [(t.strip(), float(p)) for t, p in zip(texts, probs)]
+            # Đọc lần 2 bằng RapidOCR: giỏi chữ số và ký tự @ hơn VietOCR.
+            rapid, _ = self.rapid.text_rec([c.copy() for c in crops_bgr], False)
+            return [pick_line(v, (r[0].strip(), float(r[1]))) for v, r in zip(viet, rapid)]
         res, _ = self.rapid.text_rec(crops_bgr, False)
         return [(r[0].strip(), float(r[1])) for r in res]
 
