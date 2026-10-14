@@ -1,130 +1,95 @@
----
-title: Danh thiep OCR
-emoji: 🪪
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
+# Danh thiếp: app desktop quét danh thiếp hàng loạt bằng VietOCR
 
-# Danh thiếp: app quét danh thiếp cho iPhone bằng VietOCR
+App cá nhân cho Windows, tương tự *ABBYY Business Card Reader*:
 
-Một ứng dụng cá nhân tương tự *ABBYY Business Card Reader*. Bạn chụp danh thiếp, app tự nhận dạng chữ tiếng Việt và tách ra họ tên, chức vụ, công ty, số điện thoại, email, website, địa chỉ. Sau đó bạn kiểm tra lại rồi lưu.
+1. **Chọn nhiều ảnh, cả thư mục, hoặc kéo thả** ảnh danh thiếp vào cửa sổ.
+2. App **tự cắt từng danh thiếp**: ảnh chụp nghiêng trên bàn, ảnh scan nhiều thẻ cùng lúc, hay ảnh danh thiếp điện tử đều được. Mỗi thẻ được nắn thẳng và **xoay đúng chiều**, kể cả khi bị lộn ngược hay xoay dọc.
+3. **Đọc chữ bằng VietOCR** (tiếng Việt có dấu), **đọc cả mã QR** nếu thẻ có.
+4. **Tách thông tin**: họ tên, chức vụ, công ty, di động, điện thoại, fax, email, website, địa chỉ và địa chỉ chi nhánh. Mã số thuế được nhận ra và bỏ qua.
+5. **Phân loại** theo nhóm (Chủ đầu tư, Nhà thầu, Tư vấn, MEP, Nhà cung cấp, Ngân hàng…). Bạn sửa được danh sách nhóm và từ khóa.
+6. Ra **một bảng danh sách** có thể tìm kiếm, lọc, sửa và đổi phân loại hàng loạt. App **cảnh báo** thẻ thiếu thông tin hoặc trùng với thẻ đã có.
+7. **Xuất Excel** (kèm ảnh thẻ, có trang tổng hợp theo nhóm) hoặc **vCard** (nhập vào Outlook, Danh bạ điện thoại, Google Contacts).
 
-- **Không cần máy Mac, không cần tài khoản Apple Developer.** App là một *web app (PWA)*: mở bằng Safari rồi "Thêm vào Màn hình chính", sau đó dùng như app bình thường.
-- **Dữ liệu chỉ nằm trên iPhone của bạn** (bộ nhớ của Safari). Server chỉ đọc chữ trên ảnh rồi trả kết quả, không lưu lại gì.
-- **Nhận dạng bằng VietOCR** (rất tốt với tiếng Việt có dấu). Khi server không truy cập được, app tự chuyển sang Tesseract chạy ngay trên iPhone.
-- Xuất dữ liệu: **Lưu vào Danh bạ iPhone** (vCard), **xuất Excel (CSV)**, **sao lưu/khôi phục** ra file JSON (lưu vào iCloud Drive).
+Mọi xử lý chạy **ngay trên máy tính của bạn**: không cần Internet, không gửi ảnh đi đâu.
 
 ---
 
-## Cài đặt lần đầu (khoảng 15 phút, chỉ làm một lần)
+## Cài đặt: cách 1, tải bản đóng gói sẵn (khuyên dùng, không cần cài Python)
 
-Bạn sẽ đưa app lên **Hugging Face Spaces**. Dịch vụ này miễn phí, có sẵn địa chỉ `https://...` và chạy được VietOCR.
+Mỗi lần code được cập nhật, GitHub tự build bản Windows và chạy thử VietOCR trên ảnh mẫu.
 
-### Bước 1. Tạo tài khoản Hugging Face
-Vào <https://huggingface.co/join> và đăng ký bằng email (miễn phí).
+1. Vào trang GitHub của repo, mở tab **Actions** rồi chọn **Build Windows app**.
+2. Bấm vào lần chạy mới nhất có dấu ✅ xanh.
+3. Kéo xuống mục **Artifacts** và tải **DanhThiep-Windows** (khoảng 400–600 MB).
+4. Giải nén **2 lần**: lần đầu ra `DanhThiep-Windows.zip`, giải nén tiếp vào một thư mục cố định, ví dụ `C:\DanhThiep`.
+5. Bấm đúp **`DanhThiep.exe`**.
+   - Nếu Windows báo *"Windows protected your PC"*, bấm **More info**, rồi **Run anyway**. App không có chữ ký số nên Windows cảnh báo như vậy.
+   - Lần đầu mất khoảng 20–40 giây để nạp mô hình.
+   - Cửa sổ đen đi kèm hiện nhật ký hoạt động. Đóng nó là thoát app.
 
-### Bước 2. Tạo Space
-1. Vào <https://huggingface.co/new-space>.
-2. **Space name**: ví dụ `danh-thiep`.
-3. **Select the Space SDK**: chọn **Docker**, rồi chọn **Blank**.
-4. **Space hardware**: giữ **CPU basic · Free**.
-5. **Public** hay **Private**: chọn **Public**. Với Private thì Safari không mở được nếu chưa đăng nhập. Bạn vẫn bảo vệ được server bằng mã truy cập ở Bước 4.
-6. Bấm **Create Space**.
+> Bản tải ở mục Artifacts được giữ 30 ngày. Khi hết hạn, vào **Actions → Build Windows app → Run workflow** để build lại.
 
-### Bước 3. Tải mã nguồn lên Space
-**Cách A (dễ nhất, trên máy tính):**
-1. Trên trang GitHub của dự án này, bấm **Code → Download ZIP** rồi giải nén.
-2. Trong Space vừa tạo, mở tab **Files**, chọn **Add file → Upload files**.
-3. Kéo **toàn bộ nội dung** thư mục đã giải nén vào (gồm `Dockerfile`, `README.md`, thư mục `server/` và `web/`). Các thư mục `.git` và `tests/` không bắt buộc.
-4. Bấm **Commit changes to main**.
+## Cài đặt: cách 2, chạy từ mã nguồn
 
-**Cách B (nếu bạn dùng Git):**
-```bash
-git remote add space https://huggingface.co/spaces/<tên-bạn>/danh-thiep
-git push space HEAD:main
-```
-
-Space sẽ tự build trong khoảng 5–10 phút. Trạng thái chuyển sang **Running** là xong.
-
-### Bước 4 (khuyên dùng). Đặt mã truy cập
-Mục đích là để người lạ có địa chỉ Space cũng không dùng ké server được.
-1. Trong Space, mở **Settings → Variables and secrets → New secret**.
-2. **Name**: `APP_TOKEN`. **Value**: một chuỗi bí mật bạn tự nghĩ ra, ví dụ `ngoc-2026-xyz`.
-3. Space sẽ tự khởi động lại.
-
-### Bước 5. Cài lên iPhone
-1. Mở **Safari** trên iPhone (bắt buộc là Safari).
-2. Truy cập `https://<tên-bạn>-danh-thiep.hf.space`. Địa chỉ này nằm ở nút **⋯ → Embed this Space → Direct URL** trong Space.
-3. Bấm nút **Chia sẻ** (ô vuông có mũi tên lên), chọn **Thêm vào MH chính** rồi **Thêm**.
-4. Mở app **Danh thiếp** vừa xuất hiện trên màn hình chính.
-5. Nếu đã đặt `APP_TOKEN` ở Bước 4: vào **⚙︎ Cài đặt**, nhập mã vào ô **Mã truy cập**, rồi bấm **Kiểm tra kết nối server**.
-
-> ⚠️ Luôn mở app từ biểu tượng trên màn hình chính. Dữ liệu trong app tách biệt với tab Safari thường, và iOS sẽ giữ dữ liệu của app ở màn hình chính lâu dài.
+1. Cài **Python 3.11** từ <https://www.python.org/downloads/release/python-3119/>. Khi cài, tick **"Add python.exe to PATH"**.
+2. Tải mã nguồn: **Code → Download ZIP** rồi giải nén.
+3. Bấm đúp **`Chay DanhThiep.bat`**. Lần đầu app tự cài thư viện và tải mô hình VietOCR, mất khoảng 5–10 phút. Các lần sau mở ngay.
 
 ---
 
 ## Cách dùng
 
-| Việc cần làm | Thao tác |
+| Việc | Thao tác |
 |---|---|
-| Quét danh thiếp | **📷 Chụp danh thiếp** (hoặc **🖼️ Chọn ảnh** từ thư viện). Đặt thẻ trên nền tối, chụp thẳng, đủ sáng. |
-| Sửa ô bị nhận sai | Chạm vào ô cần sửa, rồi chạm vào **dòng chữ nhận dạng được** ở cuối trang để điền vào. Bạn cũng có thể gõ tay. |
-| Ảnh bị ngược/nghiêng | Bấm **↻ Xoay ảnh**, app sẽ nhận dạng lại. |
-| Gọi điện, email, xem bản đồ | Mở danh thiếp rồi chạm vào số điện thoại, email hoặc địa chỉ. |
-| Đưa vào Danh bạ iPhone | Mở danh thiếp → **👤 Lưu vào Danh bạ** → **Tạo liên hệ mới**. |
-| Xuất ra Excel | **⚙︎ → 📊 Xuất Excel (CSV)** → lưu vào Tệp rồi mở bằng Excel hoặc Numbers. |
-| Sao lưu | **⚙︎ → 💾 Tạo bản sao lưu** → **Lưu vào Tệp** (chọn iCloud Drive). Nên làm định kỳ. |
-| Chuyển sang iPhone mới | Trên máy mới: **⚙︎ → ♻️ Khôi phục** rồi chọn file sao lưu. |
+| Nhập ảnh | **＋ Chọn ảnh** (chọn nhiều ảnh), **📁 Chọn cả thư mục**, hoặc kéo thả vào cửa sổ. Hỗ trợ jpg, png, bmp, webp, tiff. |
+| Xem / sửa một thẻ | Bấm vào dòng. Khung bên phải hiện ảnh thẻ và các ô thông tin. Sửa xong bấm ra ngoài ô là **tự lưu**. |
+| Điền nhanh từ chữ đã đọc | Bấm vào ô cần điền, rồi bấm dòng chữ ở mục **Chữ đọc được**. |
+| Thẻ bị xoay sai | Bấm **↻ Xoay 90° và đọc lại**. |
+| Lọc / tìm | Bấm nhóm ở cột trái (hoặc **⚠ Cần kiểm tra**). Ô tìm kiếm gõ không dấu cũng được, tìm được cả theo số điện thoại. |
+| Đổi phân loại / xóa hàng loạt | Tick chọn các dòng rồi dùng thanh công cụ phía trên bảng. |
+| Xuất Excel | **📊 Xuất Excel**: file được lưu và tự mở. Muốn bỏ ảnh trong file Excel cho nhẹ: **⋯ → bỏ tick "Chèn ảnh thẻ vào Excel"**. |
+| Nhập vào Outlook / điện thoại | **👥 Xuất vCard**, rồi mở file `.vcf` bằng Outlook, hoặc gửi sang điện thoại và mở. |
+| Sửa nhóm phân loại | **⋯ → Sửa danh sách phân loại…** Mở file bằng Notepad, sửa tên nhóm hoặc từ khóa, lưu lại rồi khởi động lại app. |
 
-**Lưu ý về server miễn phí:** Space miễn phí sẽ "ngủ" nếu không ai dùng trong 48 giờ. Lần quét đầu tiên sau đó mất khoảng 1–2 phút để server thức dậy, các lần sau chỉ vài giây. Nếu không muốn chờ, app tự dùng Tesseract trên iPhone. Tesseract kém chính xác hơn với tiếng Việt.
+**Mẹo chụp/scan để đọc chính xác:**
+- Đặt thẻ trên **nền tối hoặc khác màu thẻ**, chụp đủ sáng, không lóa.
+- Với máy scan, có thể xếp nhiều thẻ trên mặt kính, **để cách nhau khoảng 1 cm**.
+- Ảnh từ điện thoại dùng trực tiếp được, không cần cắt trước.
 
-**Về quyền riêng tư:** ảnh danh thiếp được gửi lên server của bạn trên Hugging Face để đọc chữ, rồi bị bỏ đi ngay. Server không lưu ảnh hay kết quả. Danh sách danh thiếp chỉ nằm trên iPhone.
-
----
-
-## (Tùy chọn) Chạy server trên máy tính Windows của bạn
-
-Cách này dùng khi bạn không muốn gửi ảnh lên Internet. iPhone và máy tính phải dùng chung mạng Wi‑Fi.
-
-```bash
-# Cài Python 3.11 từ python.org, rồi mở Command Prompt trong thư mục dự án:
-pip install -r server/requirements.txt
-python -m uvicorn server.app:app --host 0.0.0.0 --port 8000
-```
-
-Trên iPhone, mở Safari và truy cập `http://<IP-máy-tính>:8000`. Xem IP bằng lệnh `ipconfig`, dòng IPv4.
-
-Lưu ý: địa chỉ `http://` không có biểu tượng khóa, nên app sẽ không mở được khi không có mạng. Dữ liệu của app gắn với địa chỉ này, nên đổi IP sẽ thành "app mới". Cách tốt nhất vẫn là dùng app trên Hugging Face, rồi vào **⚙︎ → Địa chỉ server VietOCR** điền địa chỉ máy tính khi cần. Muốn vậy, máy tính phải có địa chỉ `https` (ví dụ qua Cloudflare Tunnel).
+**Dữ liệu được lưu ở `Documents\DanhThiep`:**
+- `danhthiep.db`: toàn bộ danh sách. **Nên sao lưu cả thư mục này định kỳ.**
+- `anh-the\`: ảnh từng thẻ đã cắt.
+- `xuat-file\`: các file Excel / vCard đã xuất.
+- `phan-loai.json`: nhóm phân loại và từ khóa.
 
 ---
 
-## Cấu trúc mã nguồn (dành cho người muốn tìm hiểu)
+## Cách hoạt động (dành cho người muốn tìm hiểu)
 
 ```
-Dockerfile               Đóng gói server cho Hugging Face Spaces
-server/app.py            FastAPI: phục vụ giao diện web + API /api/ocr
-server/ocr_engine.py     RapidOCR (tìm vị trí dòng chữ) + VietOCR (đọc chữ tiếng Việt)
-server/vietocr_config/   Cấu hình mô hình VietOCR vgg_seq2seq
-web/index.html, app.js   Giao diện app trên iPhone
-web/parser.js            Tách họ tên / chức vụ / công ty / SĐT / email / địa chỉ; xuất vCard, CSV
-web/db.js                Lưu dữ liệu trên iPhone (IndexedDB)
-web/sw.js                Cho phép mở app khi không có mạng
-tests/parser.test.js     Kiểm thử bộ tách thông tin:  node --test tests/parser.test.js
+Ảnh ─► tìm viền thẻ (OpenCV: ngưỡng sáng/tối, cạnh, màu) ─► nắn phối cảnh
+     └► không thấy viền? gom các cụm chữ (scan nhiều thẻ) hoặc dùng cả ảnh
+   ─► xoay đúng chiều (hướng dòng chữ + bộ phân loại góc 0°/180°)
+   ─► tìm dòng chữ (RapidOCR/DBNet) ─► đọc chữ (VietOCR vgg_seq2seq) + đọc mã QR
+   ─► tách trường (quy tắc cho danh thiếp Việt Nam) ─► phân loại theo từ khóa ─► SQLite
 ```
 
-Biến môi trường của server:
+```
+DanhThiep.py               Điểm khởi chạy (mở cửa sổ app)
+app/main.py                Khởi động bộ xử lý nội bộ + cửa sổ (pywebview)
+app/server.py              API nội bộ (127.0.0.1): xử lý ảnh, danh sách, xuất file
+app/engine/crop.py         Tìm, cắt, nắn thẳng và xoay từng danh thiếp
+app/engine/ocr.py          RapidOCR (tìm dòng chữ) + VietOCR (đọc chữ)
+app/engine/qr.py           Đọc mã QR (vCard / MECARD / link)
+app/engine/parser.py       Tách họ tên, chức vụ, công ty, SĐT, email, địa chỉ…
+app/engine/classify.py     Phân loại theo nhóm ngành (app/config/categories.json)
+app/storage.py             Lưu trữ SQLite + ảnh thẻ
+app/export.py              Xuất Excel (kèm ảnh) và vCard
+app/static/                Giao diện
+app/samples.py             Ảnh danh thiếp mẫu để tự kiểm tra
+tests/                     Kiểm thử:  python -m pytest tests
+DanhThiep.spec             Cấu hình đóng gói .exe (PyInstaller)
+.github/workflows/         GitHub tự build bản Windows + chạy tự kiểm tra
+```
 
-| Biến | Ý nghĩa | Mặc định |
-|---|---|---|
-| `APP_TOKEN` | Mã truy cập bắt buộc cho `/api/ocr` | (không có) |
-| `OCR_THREADS` | Số luồng CPU cho VietOCR | `2` |
-| `VIETOCR_WEIGHTS_URL` | Nơi tải trọng số VietOCR | `https://vocr.vn/data/vietocr/vgg_seq2seq.pth` |
-
-## Hướng phát triển thêm
-- Tự cắt viền danh thiếp và nắn phẳng ảnh chụp nghiêng.
-- Quét cả mặt sau (thường là tiếng Anh).
-- Gắn nhãn hoặc nhóm (khách hàng, nhà cung cấp, nhà thầu phụ…).
-- Đồng bộ dữ liệu sang Google Sheets.
+Kiểm tra bộ nhận dạng trên máy: `python DanhThiep.py --selftest`. Mở bằng trình duyệt thay cho cửa sổ riêng: `python DanhThiep.py --browser`.

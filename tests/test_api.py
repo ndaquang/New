@@ -1,0 +1,70 @@
+import os
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app import server
+from app.samples import SAMPLES, encode
+
+os.environ["DANHTHIEP_NO_OPEN"] = "1"
+
+
+@pytest.fixture(scope="module")
+def client(tmp_path_factory):
+    # Bộ đọc RapidOCR là đủ để kiểm tra luồng cắt thẻ / lưu / xuất file.
+    server.init(tmp_path_factory.mktemp("data"), use_vietocr=False, background=False)
+    return TestClient(server.app)
+
+
+def test_status(client):
+    s = client.get("/api/status").json()
+    assert s["ready"] and "Nhà thầu xây dựng" in s["categories"]
+
+
+def test_process_export_flow(client, tmp_path):
+    name = "scan_hai_the.jpg"
+    r = client.post("/api/process", files={"file": (name, encode(name, SAMPLES[name]()), "image/jpeg")}, data={"batch": "b1"})
+    assert r.status_code == 200, r.text
+    cards = r.json()["cards"]
+    assert len(cards) == 2
+    emails = {c["email"] for c in cards}
+    assert emails == {"quang.nguyen@viteccons.vn", "long.vu@cesco.com.vn"}
+    assert all(c["source_file"] == name for c in cards)
+
+    # ảnh thẻ đã cắt
+    img = client.get(f"/api/cards/{cards[0]['id']}/image")
+    assert img.status_code == 200 and img.headers["content-type"] == "image/jpeg"
+
+    # sửa tay
+    cid = cards[0]["id"]
+    upd = client.patch(f"/api/cards/{cid}", json={"fields": {"name": "Tên Đã Sửa", "id": "hack"}}).json()
+    assert upd["name"] == "Tên Đã Sửa" and upd["id"] == cid
+
+    # thẻ trùng được đánh dấu
+    again = client.post("/api/process", files={"file": (name, encode(name, SAMPLES[name]()), "image/jpeg")}).json()["cards"]
+    assert all("trùng" in c["review"] for c in again)
+
+    # xuất Excel + vCard
+    from openpyxl import load_workbook
+
+    x = client.post("/api/export", json={"format": "xlsx"}).json()
+    wb = load_workbook(x["path"])
+    ws = wb["Danh sách"]
+    assert ws.max_row == 5 and ws["D1"].value == "Họ tên"
+    assert len(ws._images) == 4
+    assert wb["Tổng hợp"]["B" + str(wb["Tổng hợp"].max_row)].value == 4
+    v = client.post("/api/export", json={"format": "vcf", "ids": [cid]}).json()
+    text = open(v["path"], encoding="utf-8").read()
+    assert text.count("BEGIN:VCARD") == 1 and "FN:Tên Đã Sửa" in text
+
+    # xoay thẻ, đổi phân loại, xóa
+    assert client.post(f"/api/cards/{cid}/rotate").status_code == 200
+    client.post("/api/cards/category", json={"ids": [cid], "category": "Khác"})
+    assert next(c for c in client.get("/api/cards").json() if c["id"] == cid)["category"] == "Khác"
+    client.post("/api/cards/delete", json={"ids": [c["id"] for c in again]})
+    assert len(client.get("/api/cards").json()) == 2
+
+
+def test_bad_image(client):
+    r = client.post("/api/process", files={"file": ("x.jpg", b"not an image", "image/jpeg")})
+    assert r.status_code == 400

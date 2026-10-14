@@ -1,5 +1,8 @@
 __pycache__/
 *.pyc
-server/weights/
-node_modules/
 .venv/
+app/weights/
+build/
+dist/
+*.spec.bak
+.pytest_cache/

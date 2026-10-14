@@ -1,0 +1,20 @@
+DANH THIẾP - HƯỚNG DẪN NHANH
+============================
+
+1. Giải nén file zip vào một thư mục cố định, ví dụ C:\DanhThiep
+   (không chạy trực tiếp bên trong file zip).
+2. Mở thư mục DanhThiep, bấm đúp vào DanhThiep.exe.
+   - Nếu Windows báo "Windows protected your PC": bấm "More info" -> "Run anyway".
+   - Lần mở đầu tiên mất khoảng 20-40 giây để nạp mô hình VietOCR.
+   - Cửa sổ đen đi kèm là nhật ký hoạt động; đóng nó là thoát app.
+3. Bấm "+ Chọn ảnh" (chọn nhiều ảnh) hoặc "Chọn cả thư mục", hoặc kéo thả ảnh vào cửa sổ.
+   App tự cắt từng danh thiếp, xoay thẳng, đọc chữ, tách thông tin và phân loại.
+4. Kiểm tra các dòng có dấu ⚠, bấm vào dòng để xem ảnh và sửa.
+5. Bấm "Xuất Excel" để có file danh sách (kèm ảnh thẻ), hoặc "Xuất vCard" để nhập vào
+   Outlook / Danh bạ điện thoại / Google Contacts.
+
+Dữ liệu được lưu tại: Documents\DanhThiep
+  - danhthiep.db     : cơ sở dữ liệu (hãy sao lưu thư mục này định kỳ)
+  - anh-the\         : ảnh từng danh thiếp đã cắt
+  - xuat-file\       : các file Excel / vCard đã xuất
+  - phan-loai.json   : danh sách nhóm phân loại và từ khóa (sửa được, mở bằng Notepad)

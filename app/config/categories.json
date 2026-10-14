@@ -1,0 +1,37 @@
+{
+  "_huong_dan": "Danh sách nhóm phân loại. Có thể sửa tên nhóm, thêm/bớt từ khóa (không phân biệt hoa thường, có dấu hoặc không dấu đều được). Nhóm nào khớp nhiều từ khóa nhất (ưu tiên khớp trong tên công ty) sẽ được chọn. Nhóm cuối cùng là nhóm mặc định khi không khớp gì.",
+  "categories": [
+    {
+      "name": "Chủ đầu tư / Bất động sản",
+      "keywords": ["bất động sản", "real estate", "property", "properties", "land", "địa ốc", "phát triển đô thị", "khu đô thị", "developer", "development", "investment", "ban quản lý dự án", "chủ đầu tư"]
+    },
+    {
+      "name": "Nhà thầu xây dựng",
+      "keywords": ["xây dựng", "xây lắp", "construction", "contractor", "contracting", "thi công", "công trình", "build", "builder", "building", "tender", "đấu thầu", "e&c", "kết cấu", "structure", "nền móng", "foundation", "cons", "coteccons", "hòa bình", "ricons", "newtecons", "unicons"]
+    },
+    {
+      "name": "Tư vấn thiết kế / giám sát / QS",
+      "keywords": ["tư vấn", "consultant", "consultants", "consulting", "thiết kế", "design", "kiến trúc", "architect", "architecture", "giám sát", "quantity surveyor", "qs", "cost", "engineering consultancy", "pmc", "project management"]
+    },
+    {
+      "name": "Cơ điện (MEP) / PCCC",
+      "keywords": ["cơ điện", "m&e", "mep", "điện lạnh", "hvac", "điều hòa", "air conditioning", "pccc", "phòng cháy", "fire", "electrical", "electric", "plumbing", "cấp thoát nước", "thang máy", "elevator", "lift", "iem", "automation", "tự động hóa", "solar", "năng lượng"]
+    },
+    {
+      "name": "Nhà cung cấp vật tư / thiết bị",
+      "keywords": ["vật liệu", "vật tư", "thiết bị", "material", "materials", "supply", "supplier", "trading", "thương mại", "sản xuất", "manufacturing", "manufacturer", "factory", "thép", "steel", "xi măng", "cement", "bê tông", "concrete", "gạch", "tile", "sơn nước", "sơn công nghiệp", "paint", "nhôm", "kính", "glass", "aluminium", "cửa", "door", "tôn", "đá", "stone", "gỗ", "wood", "chống thấm", "waterproof", "distributor", "phân phối", "equipment"]
+    },
+    {
+      "name": "Ngân hàng / Tài chính / Bảo hiểm",
+      "keywords": ["ngân hàng", "bank", "tài chính", "finance", "financial", "bảo hiểm", "insurance", "chứng khoán", "securities", "quỹ", "fund", "capital"]
+    },
+    {
+      "name": "Cơ quan nhà nước",
+      "keywords": ["ủy ban", "ubnd", "sở xây dựng", "bộ xây dựng", "chính phủ", "government", "people's committee", "department of", "cục", "chi cục"]
+    },
+    {
+      "name": "Khác",
+      "keywords": []
+    }
+  ]
+}

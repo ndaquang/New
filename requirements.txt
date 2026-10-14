@@ -7,3 +7,5 @@ rapidocr-onnxruntime==1.4.4
 fastapi
 uvicorn
 python-multipart
+openpyxl
+pywebview; sys_platform == "win32"

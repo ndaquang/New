@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Danh thiếp</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="icon.svg" alt=""> Danh thiếp</div>
+    <span id="engine-status" class="pill">Đang khởi động…</span>
+    <div class="spacer"></div>
+    <label class="btn primary">＋ Chọn ảnh
+      <input id="pick-files" type="file" accept="image/*" multiple hidden>
+    </label>
+    <label class="btn">📁 Chọn cả thư mục
+      <input id="pick-folder" type="file" webkitdirectory multiple hidden>
+    </label>
+    <button class="btn" id="export-xlsx">📊 Xuất Excel</button>
+    <button class="btn" id="export-vcf">👥 Xuất vCard</button>
+    <div class="menu">
+      <button class="btn icon" id="menu-btn" aria-label="Thêm">⋯</button>
+      <div class="menu-pop hidden" id="menu-pop">
+        <button data-open="data">Mở thư mục dữ liệu</button>
+        <button data-open="exports">Mở thư mục file đã xuất</button>
+        <button data-open="categories">Sửa danh sách phân loại…</button>
+        <label class="check"><input type="checkbox" id="opt-images" checked> Chèn ảnh thẻ vào Excel</label>
+      </div>
+    </div>
+  </header>
+
+  <div id="progress" class="progress hidden">
+    <div class="progress-text"><span id="progress-label"></span><button class="link" id="progress-stop">Dừng</button></div>
+    <div class="bar"><div id="progress-bar"></div></div>
+    <ul id="progress-errors" class="errors"></ul>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h4>Phân loại</h4>
+      <ul id="cat-list"></ul>
+    </aside>
+
+    <main class="main">
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Tìm theo tên, công ty, số điện thoại, email…">
+        <div id="bulk" class="bulk hidden">
+          <span id="bulk-count"></span>
+          <select id="bulk-cat"><option value="">Đổi phân loại…</option></select>
+          <button class="btn small" id="bulk-export">Xuất mục đã chọn</button>
+          <button class="btn small danger" id="bulk-delete">Xóa</button>
+        </div>
+      </div>
+      <div id="dropzone" class="dropzone hidden">
+        <div>
+          <div class="big">🪪</div>
+          <p><b>Kéo thả ảnh danh thiếp vào đây</b>, hoặc bấm <b>＋ Chọn ảnh</b> / <b>📁 Chọn cả thư mục</b>.</p>
+          <p class="muted">Một ảnh có thể chứa nhiều danh thiếp (ví dụ scan cả xấp trên máy scan). App sẽ tự cắt từng thẻ, xoay thẳng, đọc chữ và phân loại.</p>
+        </div>
+      </div>
+      <div class="table-wrap" id="table-wrap">
+        <table id="table">
+          <thead>
+            <tr>
+              <th class="c-check"><input type="checkbox" id="check-all"></th>
+              <th class="c-img">Ảnh</th>
+              <th data-sort="name">Họ tên</th>
+              <th data-sort="title">Chức vụ</th>
+              <th data-sort="company">Công ty</th>
+              <th data-sort="mobile">Di động</th>
+              <th data-sort="phone">Điện thoại</th>
+              <th data-sort="email">Email</th>
+              <th data-sort="category">Phân loại</th>
+              <th class="c-flag" title="Cần kiểm tra">⚠</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p id="footer-count" class="muted small"></p>
+    </main>
+
+    <aside id="drawer" class="drawer hidden">
+      <div class="drawer-head">
+        <h3 id="d-title">Chi tiết</h3>
+        <button class="btn icon" id="d-close" aria-label="Đóng">✕</button>
+      </div>
+      <img id="d-img" class="d-img" alt="Ảnh danh thiếp">
+      <div class="d-actions">
+        <button class="btn small" id="d-rotate">↻ Xoay 90° và đọc lại</button>
+        <span id="d-source" class="muted small"></span>
+      </div>
+      <div id="d-review" class="warn hidden"></div>
+      <form id="d-form" autocomplete="off">
+        <label>Phân loại<select name="category" id="d-cat"></select></label>
+        <label>Họ tên<input name="name"></label>
+        <label>Chức vụ<input name="title"></label>
+        <label>Công ty<input name="company"></label>
+        <div class="row3">
+          <label>Di động<input name="mobile"></label>
+          <label>Điện thoại<input name="phone"></label>
+          <label>Fax<input name="fax"></label>
+        </div>
+        <label>Email<input name="email"></label>
+        <label>Website<input name="website"></label>
+        <label>Địa chỉ<textarea name="address" rows="2"></textarea></label>
+        <label>Địa chỉ 2 (chi nhánh)<textarea name="address2" rows="2"></textarea></label>
+        <label>Ghi chú<textarea name="note" rows="2" placeholder="Gặp ở đâu, dự án nào…"></textarea></label>
+      </form>
+      <h4>Chữ đọc được <span class="muted small">(bấm vào một ô ở trên, rồi bấm dòng chữ để điền)</span></h4>
+      <div id="d-lines" class="chips"></div>
+      <div class="d-bottom">
+        <span id="d-saved" class="muted small"></span>
+        <button class="btn small danger" id="d-delete">Xóa danh thiếp</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
