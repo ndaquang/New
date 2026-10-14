@@ -1,5 +1,9 @@
 # Cấu hình PyInstaller để đóng gói app thành thư mục chạy được trên Windows (DanhThiep.exe).
 # Build: pyinstaller DanhThiep.spec --noconfirm
+import glob
+import os
+
+import torchvision
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas = [
@@ -15,6 +19,13 @@ for pkg in ("rapidocr_onnxruntime", "webview", "onnxruntime"):
     datas += d
     binaries += b
     hiddenimports += h
+
+# torchvision mới đặt tên phần biên dịch là _C_stable.pyd / image_stable.pyd, PyInstaller không tự
+# nhận ra -> thiếu thì VietOCR lỗi "operator torchvision::nms does not exist". Thêm thủ công.
+_tv = os.path.dirname(torchvision.__file__)
+for ext in ("*.pyd", "*.so", "*.dll", "*.dylib"):
+    for f in glob.glob(os.path.join(_tv, ext)):
+        binaries.append((f, "torchvision"))
 
 a = Analysis(
     ["DanhThiep.py"],
