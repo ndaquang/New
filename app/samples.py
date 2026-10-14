@@ -93,6 +93,11 @@ def _background(w: int, h: int, kind: str, seed: int = 0) -> np.ndarray:
         x = np.arange(w)[None, :]
         grain = (np.sin(y / 9.0 + np.sin(x / 140.0) * 3) * 12 + rng.normal(0, 6, (h, w))).astype(np.float32)
         bg = np.stack([95 + grain, 135 + grain, 175 + grain], axis=2)
+    elif kind == "lightwood":  # bàn gỗ màu sáng (giống ảnh chụp thật): thẻ trắng khó tách khỏi nền
+        y = np.arange(h)[:, None]
+        x = np.arange(w)[None, :]
+        grain = (np.sin(y / 6.0 + np.sin(x / 200.0) * 4) * 9 + rng.normal(0, 5, (h, w))).astype(np.float32)
+        bg = np.stack([160 + grain, 185 + grain, 205 + grain], axis=2)
     else:  # mặt kính máy scan / bàn xám
         bg = np.full((h, w, 3), 205, np.float32) + rng.normal(0, 4, (h, w, 1))
     return np.clip(bg, 0, 255).astype(np.uint8)
@@ -141,11 +146,19 @@ def sample_rotated() -> np.ndarray:
     return place(bg, card, [[260, 180], [930, 200], [950, 1400], [240, 1380]])
 
 
+def sample_light_wood() -> np.ndarray:
+    """Thẻ nhỏ trong khung hình, trên bàn gỗ sáng màu (kiểu ảnh chụp điện thoại hay gặp)."""
+    bg = _background(3000, 2250, "lightwood", 4)
+    card = (card_cesco().astype(np.float32) * 0.94).astype(np.uint8)  # giấy hơi xám dưới đèn
+    return place(bg, card, [[1150, 820], [2050, 860], [2030, 1400], [1120, 1370]])
+
+
 SAMPLES = {
     "anh_chup_ban_go.jpg": sample_photo,
     "scan_hai_the.jpg": sample_scan_two,
     "danh_thiep_dien_tu.png": sample_digital,
     "chup_xoay_doc.jpg": sample_rotated,
+    "the_nho_ban_go_sang.jpg": sample_light_wood,
 }
 
 

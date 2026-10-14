@@ -15,6 +15,7 @@ EXPECT = {
     "scan_hai_the.jpg": (2, None),
     "danh_thiep_dien_tu.png": (1, [{"mobile": "0918 196 121", "email": "long.vu@cesco.com.vn"}]),
     "chup_xoay_doc.jpg": (1, [{"mobile": "0795 688 399", "email": "quang.nguyen@viteccons.vn"}]),
+    "the_nho_ban_go_sang.jpg": (1, [{"mobile": "0918 196 121", "email": "long.vu@cesco.com.vn"}]),
 }
 # Chỉ kiểm tra khi dùng VietOCR (đọc được tiếng Việt có dấu).
 EXPECT_VIETOCR = {

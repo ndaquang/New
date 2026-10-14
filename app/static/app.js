@@ -305,6 +305,18 @@
 
     $('#export-xlsx').addEventListener('click', () => exportFile('xlsx'));
     $('#export-vcf').addEventListener('click', () => exportFile('vcf'));
+    $('#reanalyze').addEventListener('click', async () => {
+      $('#menu-pop').classList.add('hidden');
+      if (!confirm('Phân tích lại chữ đã đọc của mọi danh thiếp bằng bộ tách thông tin mới nhất?\nCác ô bạn đã sửa tay sẽ được giữ nguyên.')) return;
+      try {
+        const res = await api('/api/reanalyze', { method: 'POST' });
+        await loadCards();
+        if (state.current) openDrawer(state.current.id);
+        toast(`Đã cập nhật ${res.fields} ô thông tin trên ${res.cards} danh thiếp.`, 6000);
+      } catch (e) {
+        toast('Phân tích lại thất bại: ' + e.message);
+      }
+    });
     $('#export-calib').addEventListener('click', () => { $('#menu-pop').classList.add('hidden'); exportFile('calib'); });
     $('#menu-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#menu-pop').classList.toggle('hidden'); });
     document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) $('#menu-pop').classList.add('hidden'); });

@@ -1,29 +1,31 @@
 {
-  "_huong_dan": "Danh sách nhóm phân loại. Có thể sửa tên nhóm, thêm/bớt từ khóa (không phân biệt hoa thường, có dấu hoặc không dấu đều được). Nhóm nào khớp nhiều từ khóa nhất (ưu tiên khớp trong tên công ty) sẽ được chọn. Nhóm cuối cùng là nhóm mặc định khi không khớp gì.",
+  "_huong_dan": "Danh sách nhóm phân loại. Có thể sửa tên nhóm, thêm/bớt từ khóa (không phân biệt hoa thường; từ khóa không dấu khớp cả chữ có dấu). Nhóm nào khớp nhiều từ khóa nhất (ưu tiên khớp trong tên công ty và tên miền email/website) sẽ được chọn. Nhóm cuối cùng là nhóm mặc định khi không khớp gì. Khi app cập nhật, từ khóa mới được tự thêm vào file này, từ khóa bạn đã thêm vẫn được giữ.",
+  "version": 2,
+  "removed_keywords": ["development", "investment", "sales", "kinh doanh"],
   "categories": [
     {
       "name": "Chủ đầu tư / Bất động sản",
-      "keywords": ["bất động sản", "real estate", "property", "properties", "land", "địa ốc", "phát triển đô thị", "khu đô thị", "developer", "development", "investment", "ban quản lý dự án", "chủ đầu tư"]
+      "keywords": ["bất động sản", "real estate", "estate", "realty", "property", "properties", "land", "địa ốc", "phát triển đô thị", "khu đô thị", "developer", "ban quản lý dự án", "chủ đầu tư", "investment and trading", "đầu tư và phát triển", "vinhomes", "vingroup", "novaland", "capitaland", "keppel", "gamuda", "masterise", "sun group", "nam long", "khang điền", "phát đạt", "hưng thịnh", "vinacapital", "vinaliving", "mitsubishi estate", "frasers", "becamex", "hung hau", "hunghau", "hưng hậu", "đất xanh", "dat xanh", "an gia", "him lam", "sơn kim", "son kim", "phú mỹ hưng", "phu my hung", "bitexco", "khu công nghiệp", "industrial park", "fast retailing", "logistics"]
     },
     {
       "name": "Nhà thầu xây dựng",
-      "keywords": ["xây dựng", "xây lắp", "construction", "contractor", "contracting", "thi công", "công trình", "build", "builder", "building", "tender", "đấu thầu", "e&c", "kết cấu", "structure", "nền móng", "foundation", "cons", "coteccons", "hòa bình", "ricons", "newtecons", "unicons"]
+      "keywords": ["xây dựng", "xây lắp", "construction", "contractor", "contracting", "thi công", "công trình", "build", "builder", "tender", "đấu thầu", "e&c", "engineering and construction", "nền móng", "foundation", "cons", "coteccons", "hòa bình", "hoa binh", "ricons", "newtecons", "unicons", "phục hưng", "conincon", "fecon", "cofico", "incons", "sonacons", "takenaka", "obayashi", "shimizu", "taisei", "kajima", "penta-ocean", "hyundai", "posco", "ssangyong", "samsung c&t", "freyssinet", "menard", "bachy", "vsl", "goldenlotus", "golden lotus", "hoàn thiện", "fit-out", "fit out", "interior contractor"]
     },
     {
       "name": "Tư vấn thiết kế / giám sát / QS",
-      "keywords": ["tư vấn", "consultant", "consultants", "consulting", "thiết kế", "design", "kiến trúc", "architect", "architecture", "giám sát", "quantity surveyor", "qs", "cost", "engineering consultancy", "pmc", "project management"]
+      "keywords": ["tư vấn", "consultant", "consultants", "consulting", "consultancy", "thiết kế", "design", "kiến trúc", "architect", "architects", "architecture", "giám sát", "quantity surveyor", "quantity surveying", "qs", "cost consultant", "kiểm định", "inspection", "pmc", "project management", "jll", "cbre", "savills", "colliers", "aecom", "arup", "rider levett bucknall", "rlb", "turner & townsend", "arcadis", "meinhardt", "langdon", "vinaqs", "akt"]
     },
     {
       "name": "Cơ điện (MEP) / PCCC",
-      "keywords": ["cơ điện", "m&e", "mep", "điện lạnh", "hvac", "điều hòa", "air conditioning", "pccc", "phòng cháy", "fire", "electrical", "electric", "plumbing", "cấp thoát nước", "thang máy", "elevator", "lift", "iem", "automation", "tự động hóa", "solar", "năng lượng"]
+      "keywords": ["cơ điện", "m&e", "mep", "điện lạnh", "hvac", "điều hòa", "air conditioning", "pccc", "phòng cháy", "fire protection", "fire", "electrical", "electric", "plumbing", "cấp thoát nước", "thang máy", "elevator", "lift", "iem", "automation", "tự động hóa", "solar", "năng lượng", "daikin", "carrier", "trane", "otis", "schindler", "kone", "mitsubishi electric", "schneider", "abb", "siemens", "legrand", "cadivi", "grundfos", "honeywell", "chiếu sáng", "lighting", "security solutions", "camera"]
     },
     {
       "name": "Nhà cung cấp vật tư / thiết bị",
-      "keywords": ["vật liệu", "vật tư", "thiết bị", "material", "materials", "supply", "supplier", "trading", "thương mại", "sản xuất", "manufacturing", "manufacturer", "factory", "thép", "steel", "xi măng", "cement", "bê tông", "concrete", "gạch", "tile", "sơn nước", "sơn công nghiệp", "paint", "nhôm", "kính", "glass", "aluminium", "cửa", "door", "tôn", "đá", "stone", "gỗ", "wood", "chống thấm", "waterproof", "distributor", "phân phối", "equipment"]
+      "keywords": ["vật liệu", "vật tư", "thiết bị", "material", "materials", "supply", "supplier", "trading", "thương mại", "sản xuất", "manufacturing", "manufacturer", "factory", "nhà máy", "thép", "steel", "steel structure", "kết cấu thép", "xi măng", "cement", "bê tông", "betong", "concrete", "gạch", "tile", "tiles", "ceramics", "sơn nước", "sơn công nghiệp", "paint", "nhôm", "kính", "glass", "aluminium", "aluminum", "cửa", "door", "doors", "shutter", "cửa cuốn", "tôn", "đá", "stone", "granite", "gỗ", "wood", "furniture", "nội thất", "furni", "chống thấm", "waterproof", "waterproofing", "roofing", "insulation", "cách nhiệt", "panel", "decking", "flooring", "thảm", "sàn", "sanitary", "thiết bị vệ sinh", "distributor", "phân phối", "đại lý", "equipment", "specification", "showroom", "store", "fixings", "chemicals", "hilti", "geberit", "knauf", "aquapanel", "gyproc", "saint-gobain", "eurowindow", "rawlplug", "tremco", "agc", "hörmann", "hormann", "hoermann", "toto", "inax", "lixil", "grohe", "kohler", "american standard", "caesar", "jotun", "dulux", "akzonobel", "akzo nobel", "nippon paint", "kansai", "toa", "sika", "mapei", "basf", "weber", "bluescope", "lysaght", "hoa sen", "nam kim", "namkim", "pomina", "hòa phát", "viglacera", "đồng tâm", "dong tam", "taicera", "vicostone", "an cường", "an cuong", "austdoor", "xingfa", "reynaers", "bunka", "hunter douglas", "rockwool", "kingspan", "bestmix", "kibing", "king glass", "pebsteel", "bsteel", "zamil", "greenpan", "dfurni", "deco vina", "conschem"]
     },
     {
       "name": "Ngân hàng / Tài chính / Bảo hiểm",
-      "keywords": ["ngân hàng", "bank", "tài chính", "finance", "financial", "bảo hiểm", "insurance", "chứng khoán", "securities", "quỹ", "fund", "capital"]
+      "keywords": ["ngân hàng", "bank", "tài chính", "finance", "financial", "bảo hiểm", "insurance", "chứng khoán", "securities", "quỹ", "fund", "capital management"]
     },
     {
       "name": "Cơ quan nhà nước",

@@ -91,3 +91,24 @@ def test_learning_and_calibration_pack(client):
         assert set(mine["fields_changed"]) >= {"company", "category"}
         assert mine["auto"]["company"] == "VITECCONS" and mine["raw_text"]
         assert f"anh/{first['id']}.jpg" in z.namelist()
+
+
+def test_reanalyze_keeps_manual_edits(client):
+    name = "danh_thiep_dien_tu.png"
+    card = client.post("/api/process", files={"file": (name, encode(name, SAMPLES[name]()), "image/png")}).json()["cards"][0]
+    # Giả lập kết quả cũ, sai (như bản trước): email trống, công ty sai; bạn đã sửa tay chức vụ.
+    from app import server as srv
+
+    srv.state.store.set_fields_silently(card["id"], {"email": "", "company": "SAI"})
+    import json as _json
+
+    auto = _json.loads(card["auto_fields"])
+    auto.update({"email": "", "company": "SAI"})
+    srv.state.store.set_fields_silently(card["id"], {"auto_fields": _json.dumps(auto, ensure_ascii=False)})
+    client.patch(f"/api/cards/{card['id']}", json={"fields": {"title": "Chức vụ tôi tự sửa"}})
+
+    res = client.post("/api/reanalyze").json()
+    assert res["cards"] >= 1
+    after = next(c for c in client.get("/api/cards").json() if c["id"] == card["id"])
+    assert after["email"] == card["email"] and after["company"] == card["company"]  # được sửa lại
+    assert after["title"] == "Chức vụ tôi tự sửa"  # ô sửa tay giữ nguyên

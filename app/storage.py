@@ -90,6 +90,15 @@ class Store:
                 self.db.commit()
         return self.get(card_id)
 
+    def set_fields_silently(self, card_id: str, fields: dict) -> None:
+        """Ghi kết quả phân tích lại mà không đổi updated_at (để vẫn phân biệt được ô bạn đã sửa tay)."""
+        fields = {k: v for k, v in fields.items() if k in COLUMNS}
+        if fields:
+            with self.lock:
+                sets = ", ".join(f"{k} = ?" for k in fields)
+                self.db.execute(f"UPDATE cards SET {sets} WHERE id = ?", [*fields.values(), card_id])
+                self.db.commit()
+
     def delete(self, card_ids: list[str]) -> None:
         with self.lock:
             self.db.executemany("DELETE FROM cards WHERE id = ?", [(i,) for i in card_ids])
@@ -101,9 +110,22 @@ class Store:
         """Tìm thẻ đã có trùng email hoặc số di động (so theo chữ số)."""
         email = (info.get("email") or "").lower()
         mobile = "".join(ch for ch in (info.get("mobile") or "") if ch.isdigit())
-        for r in self.db.execute("SELECT id, email, mobile, name FROM cards WHERE id != ?", (exclude,)):
+        name = _fold(info.get("name"))
+        company = _fold(info.get("company"))
+        for r in self.db.execute("SELECT id, email, mobile, name, company FROM cards WHERE id != ?", (exclude,)):
             if email and r["email"].lower() == email:
                 return r["name"] or r["id"]
             if mobile and "".join(ch for ch in r["mobile"] if ch.isdigit()) == mobile:
                 return r["name"] or r["id"]
+            if name and len(name) >= 6 and _fold(r["name"]) == name and (not company or _fold(r["company"]) == company):
+                return r["name"] or r["id"]
         return ""
+
+
+def _fold(s) -> str:
+    import re
+    import unicodedata
+
+    s = unicodedata.normalize("NFD", s or "")
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn").replace("đ", "d").replace("Đ", "D")
+    return re.sub(r"[^a-z0-9]", "", s.lower())

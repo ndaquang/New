@@ -17,6 +17,7 @@ XLSX_COLUMNS = [
     ("Fax", "fax", 14), ("Email", "email", 28), ("Website", "website", 22), ("Địa chỉ", "address", 40),
     ("Địa chỉ 2", "address2", 40), ("Ghi chú", "note", 24), ("Cần kiểm tra", "review", 16),
     ("File ảnh gốc", "source_file", 22), ("Ngày quét", "created_at", 17),
+    ("Chữ nhận dạng (máy đọc)", "raw_text", 50),
 ]
 HEADER_FILL = PatternFill("solid", fgColor="0B6BCB")
 THIN = Side(style="thin", color="D0D7DE")

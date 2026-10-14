@@ -17,8 +17,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .engine.classify import DEFAULT_FILE as DEFAULT_CATEGORIES, load_categories
-from .engine.pipeline import FIELDS, analyze_card, process_image
+from .engine.classify import DEFAULT_FILE as DEFAULT_CATEGORIES, load_categories, sync_user_categories
+from .engine.pipeline import FIELDS, analyze_card, fields_from_text, process_image
 from .export import export_vcf, export_xlsx
 from .learn import Learner
 from .storage import Store, default_data_dir
@@ -62,6 +62,8 @@ def init(data_dir: Path | None = None, use_vietocr: bool = True, background: boo
     state.learner = Learner(data_dir / "hoc-tu-sua.json")
     if not state.categories_file.exists():
         shutil.copy(DEFAULT_CATEGORIES, state.categories_file)
+    elif sync_user_categories(state.categories_file):
+        print("Đã cập nhật từ khóa phân loại mới vào", state.categories_file, flush=True)
     if background:
         threading.Thread(target=_load_engine, args=(use_vietocr,), daemon=True).start()
     else:
@@ -194,6 +196,46 @@ def rotate_card(card_id: str):
     if keep_note and not info.get("note"):
         card = state.store.update(card_id, {"note": keep_note})
     return card
+
+
+@app.post("/api/reanalyze")
+def reanalyze():
+    """Áp dụng bộ tách thông tin / phân loại mới nhất cho mọi thẻ đã lưu (không cần quét lại ảnh).
+
+    Ô nào bạn đã sửa tay thì giữ nguyên; ô còn nguyên kết quả máy thì thay bằng kết quả mới.
+    """
+    cats = categories()
+    keys = FIELDS + ["category"]
+    changed_cards = changed_fields = 0
+    for c in state.store.all():
+        lines = [t for t in (c.get("raw_text") or "").split("\n") if t.strip()]
+        if not lines:
+            continue
+        new = fields_from_text(lines, c.get("qr_text") or "", cats)
+        state.learner.apply(new)
+        try:
+            auto = json.loads(c.get("auto_fields") or "{}")
+        except ValueError:
+            auto = {}
+        never_edited = (c.get("updated_at") or 0) - (c.get("created_at") or 0) < 1.5
+        update = {}
+        for k in keys:
+            current = c.get(k) or ""
+            untouched = (current == (auto.get(k) or "")) if auto else never_edited
+            if untouched and new.get(k, "") != current:
+                update[k] = new.get(k, "")
+        if update:
+            changed_cards += 1
+            changed_fields += len(update)
+        # Ghi lại kết quả máy mới để lần sau vẫn nhận ra ô đã sửa tay.
+        update["auto_fields"] = json.dumps({k: new.get(k, "") for k in keys}, ensure_ascii=False)
+        # Cảnh báo "cần kiểm tra": tính lại, giữ cảnh báo trùng; thẻ bạn đã xem và xóa cảnh báo thì để trống.
+        old_review = c.get("review") or ""
+        if old_review or never_edited:
+            dup = [x for x in old_review.split(", ") if x.startswith("có thể trùng")]
+            update["review"] = ", ".join(x for x in [new["review"], *dup] if x)
+        state.store.set_fields_silently(c["id"], update)
+    return {"cards": changed_cards, "fields": changed_fields}
 
 
 @app.get("/api/cards/{card_id}/image")
