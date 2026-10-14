@@ -27,7 +27,17 @@ jobs:
         run: python -m pytest -q tests
 
       - name: Tải trọng số VietOCR
-        run: python -c "from app.engine.ocr import ensure_weights, BUNDLED_WEIGHTS; ensure_weights(BUNDLED_WEIGHTS)"
+        shell: pwsh
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          $out = python -c "from app.engine.ocr import ensure_weights, BUNDLED_WEIGHTS; ensure_weights(BUNDLED_WEIGHTS)" 2>&1 | Out-String
+          Write-Output $out
+          if ($LASTEXITCODE -ne 0) {
+            $msg = ($out -replace "`r", "" -replace "%", "%25" -replace "`n", "%0A")
+            Write-Output "::error title=Tải trọng số VietOCR::$msg"
+            exit 1
+          }
 
       - name: Đóng gói bằng PyInstaller
         run: pyinstaller DanhThiep.spec --noconfirm

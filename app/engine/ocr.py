@@ -27,7 +27,23 @@ def ensure_weights(path: Path, url: str = WEIGHTS_URL) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".part")
     print(f"Đang tải trọng số VietOCR từ {url} ...", flush=True)
-    urllib.request.urlretrieve(url, tmp)
+    try:
+        urllib.request.urlretrieve(url, tmp)
+    except Exception as exc:
+        # Python trên Windows hay lỗi chứng chỉ HTTPS với một số máy chủ; curl của Windows thì không.
+        import shutil
+        import subprocess
+
+        curl = shutil.which("curl") or shutil.which("curl.exe")
+        if not curl:
+            raise
+        print(f"Tải bằng Python lỗi ({exc}); thử lại bằng curl ...", flush=True)
+        res = subprocess.run([curl, "-fL", "--retry", "3", "-o", str(tmp), url], capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"Không tải được trọng số VietOCR: {exc}; curl: {res.stderr.strip()[-300:]}") from exc
+    if tmp.stat().st_size < 1_000_000:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError("File trọng số VietOCR tải về không hợp lệ")
     tmp.replace(path)
     return path
 
