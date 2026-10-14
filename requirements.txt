@@ -2,7 +2,6 @@
 torch==2.14.1
 torchvision==0.29.1
 vietocr==0.3.12
-setuptools<70
 rapidocr-onnxruntime==1.4.4
 fastapi
 uvicorn
