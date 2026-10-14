@@ -142,5 +142,8 @@ def test_vietocr_mangled_at_sign():
     assert r["phone"] == r["fax"] == "028 3727 3079"
     assert "0312" not in r["note"]
 
+    r = parse_card(_lines("NGUYEN DANG QUANG | 0795 688 399 | quang.nguyen Quiteccons.vn | www.viteccons.vn"))
+    assert r["email"] == "quang.nguyen@viteccons.vn"
+
     r = parse_card(_lines("Lê Văn Bình | Email: binh.le Ocesco.com.vn | www.cesco.com.vn"))
     assert r["email"] == "binh.le@cesco.com.vn"

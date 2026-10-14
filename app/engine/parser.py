@@ -214,6 +214,18 @@ def parse_card(lines_in: list) -> dict:
                     r["email"] = (m.group(1).rstrip(".") + "@" + domain).lower()
                     used.add(l["index"])
                     break
+            if not r["email"]:
+                # Chữ đầu tên miền cũng bị đọc sai ("quang.nguyen Quiteccons.vn"): so gần đúng.
+                from difflib import SequenceMatcher
+
+                for l in lines:
+                    if l["index"] in used:
+                        continue
+                    m = re.match(r"^(?:e-?mail\s*[:.]?\s*)?([A-Za-z0-9._%+-]*[A-Za-z][A-Za-z0-9._%+-]*)\s+(\S+\.[A-Za-z]{2,})$", l["text"], re.I)
+                    if m and SequenceMatcher(None, m.group(2).lower(), domain.lower()).ratio() >= 0.8:
+                        r["email"] = (m.group(1).rstrip(".") + "@" + domain).lower()
+                        used.add(l["index"])
+                        break
 
     # 3. Điện thoại, di động, fax
     extra: list[str] = []
