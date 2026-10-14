@@ -55,6 +55,11 @@ WEB_RE = re.compile(
 )
 # Khẩu hiệu ("Your trustworthy partner", "Uy tín - Chất lượng") dễ bị nhầm là chức vụ.
 SLOGAN_RE = re.compile(r"\b(your|our|we|trust|trustworthy|quality|uy tín|chất lượng|hàng đầu|by heart|since)\b", re.I)
+# Nhãn đứng một mình, số nằm ở dòng sau (dấu ":" bị đọc sót).
+PHONE_LABEL_RE = re.compile(
+    r"^(đt|dt|tel|fax|đt\s*/\s*fax|dt\s*/\s*fax|tel\s*/\s*fax|mst|hp|h/p|mobile|mob|di động|dđ|điện thoại|phone|hotline)\W*$",
+    re.I,
+)
 PHONE_RE = re.compile(r"\+?\(?\d[\d\s.\-()]{7,}\d")
 FIELDS = ["name", "title", "company", "mobile", "phone", "fax", "email", "website", "address", "note"]
 
@@ -165,8 +170,11 @@ def parse_card(lines_in: list) -> dict:
         if not text:
             continue
         # Nhãn và giá trị bị tách thành 2 đoạn ("MST" | ": 0312 522 851"): ghép lại.
-        if lines and re.match(r"^\s*:", raw_text(l)) and not re.search(r"\d", lines[-1]["text"]) \
-                and len(lines[-1]["text"].split()) <= 3 and not lines[-1]["text"].endswith(":"):
+        prev = lines[-1]["text"] if lines else ""
+        colon_value = re.match(r"^\s*:", raw_text(l)) and not re.search(r"\d", prev) \
+            and len(prev.split()) <= 3 and not prev.endswith(":")
+        number_after_label = PHONE_LABEL_RE.match(prev) and re.match(r"^[+(\d]", text)
+        if lines and (colon_value or number_after_label):
             lines[-1]["text"] += ": " + text
             continue
         lines.append({"text": text, "height": height, "index": i})
@@ -175,20 +183,39 @@ def parse_card(lines_in: list) -> dict:
     r["address2"] = ""
     used: set[int] = set()
 
-    # 1. Email & website
-    for l in lines:
-        fixed = fix_email_spacing(l["text"])
-        em = EMAIL_RE.search(fixed)
-        if em and not r["email"]:
-            r["email"] = em.group(0).lower()
-            used.add(l["index"])
-        rest = fixed.replace(em.group(0), " ") if em else l["text"]
-        web = WEB_RE.search(rest)
-        if web and not r["website"] and "@" not in web.group(0):
+    # 1. Website: ưu tiên dòng có "www"/"http" (dòng email cũng có tên miền, dễ bị lấy nhầm).
+    web_lines = sorted(lines, key=lambda l: not re.search(r"www|http", l["text"], re.I))
+    for l in web_lines:
+        if EMAIL_RE.search(fix_email_spacing(l["text"])):
+            continue
+        web = WEB_RE.search(l["text"])
+        if web and "@" not in web.group(0):
             r["website"] = re.sub(r"[.,;]+$", "", web.group(0)).lower()
             used.add(l["index"])
+            break
 
-    # 2. Điện thoại, di động, fax
+    # 2. Email
+    for l in lines:
+        em = EMAIL_RE.search(fix_email_spacing(l["text"]))
+        if em:
+            r["email"] = em.group(0).lower()
+            used.add(l["index"])
+            break
+    if not r["email"]:
+        # VietOCR hay đọc "@" thành D/O/Q/o: "quang.nguyen Dviteccons.vn" -> dựa vào tên miền website.
+        domain = re.sub(r"^(https?://)?(www\.)?", "", r["website"]).split("/")[0]
+        if domain:
+            pat = re.compile(r"([A-Za-z0-9._%+-]+?)\s*[^\s.]?" + re.escape(domain) + r"\b", re.I)
+            for l in lines:
+                text = re.sub(r"\.{2,}", ".", re.sub(r"^(e-?mail|email|e)\s*[:.]\s*", "", l["text"], flags=re.I))
+                m = pat.search(text)
+                if m and re.search(r"[A-Za-z]", m.group(1)) and not re.match(r"(www|https?)$", m.group(1), re.I) \
+                        and not text.lower().startswith("www"):
+                    r["email"] = (m.group(1).rstrip(".") + "@" + domain).lower()
+                    used.add(l["index"])
+                    break
+
+    # 3. Điện thoại, di động, fax
     extra: list[str] = []
     for l in lines:
         if has_kw(l["text"], IGNORE_P):
@@ -235,7 +262,7 @@ def parse_card(lines_in: list) -> dict:
     if extra:
         notes.append("SĐT khác: " + ", ".join(extra))
 
-    # 3. Công ty
+    # 4. Công ty
     company_lines = [l for l in lines if l["index"] not in used and has_kw(l["text"], COMPANY_P)]
     if company_lines:
         strong = re.compile(r"công ty|company|cty|tập đoàn|group|ngân hàng|bank", re.I)
@@ -257,7 +284,7 @@ def parse_card(lines_in: list) -> dict:
             if not r["company"]:
                 r["company"] = stem.upper()
 
-    # 4. Địa chỉ: gom các dòng liền nhau thành khối; khối thứ hai là địa chỉ chi nhánh.
+    # 5. Địa chỉ: gom các dòng liền nhau thành khối; khối thứ hai là địa chỉ chi nhánh.
     def is_addr(l):
         t = l["text"]
         if not has_kw(t, ADDRESS_P):
@@ -294,7 +321,7 @@ def parse_card(lines_in: list) -> dict:
         for x in block:
             used.add(x["index"])
 
-    # 5. Chức vụ (có thể 2 dòng: tiếng Việt + tiếng Anh)
+    # 6. Chức vụ (có thể 2 dòng: tiếng Việt + tiếng Anh)
     title_lines = [
         l for l in lines
         if l["index"] not in used and has_kw(l["text"], TITLE_P) and not SLOGAN_RE.search(l["text"])
@@ -306,7 +333,7 @@ def parse_card(lines_in: list) -> dict:
         r["title"] = " / ".join(l["text"] for l in picked)
         used.update(l["index"] for l in picked)
 
-    # 6. Họ tên: chọn dòng giống tên người nhất
+    # 7. Họ tên: chọn dòng giống tên người nhất
     max_h = max([1] + [l["height"] for l in lines])
     best, best_score = None, float("-inf")
     for l in lines:

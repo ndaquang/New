@@ -109,3 +109,38 @@ def test_classify():
     # "của", "Sơn", "Đà Nẵng" không được khớp nhầm từ khóa vật tư ("cửa", "sơn", "đá")
     other = {"company": "Văn phòng của anh Sơn", "title": "", "email": "", "website": ""}
     assert classify(other, "Đà Nẵng", cats) == "Khác"
+
+
+# Chữ do VietOCR thật đọc ra trên Windows (ảnh mẫu): "@" bị đọc thành D / O / o.
+def _lines(raw: str):
+    return [{"text": t.strip(), "height": 0} for t in raw.split("|")]
+
+
+def test_vietocr_mangled_at_sign():
+    r = parse_card(_lines(
+        "NGUYEN DANG QUANG | VITECCONS | Head of Tender Department | BUILD BY HEART | 0795 688 399 | "
+        "quang.nguyen Dviteccons.vn | HCM: 109 Hoang Hoa Tham, Gia | Dinh Ward, Ho Chi Minh City | Vietnam. | "
+        "HN: No. 4NVC1, Lot 4, The Manor | Central Park, Dinh Cong Ward, | Ha Noi City, Vietnam | www.viteccons.vn | MST:00005537799"
+    ))
+    assert r["email"] == "quang.nguyen@viteccons.vn"
+    assert r["website"] == "www.viteccons.vn"
+    assert r["company"] == "VITECCONS"
+    assert r["name"] == "Nguyen Dang Quang"
+    assert r["mobile"] == "0795 688 399" and r["phone"] == ""
+
+    r = parse_card(_lines(
+        "Vũ Anh Kim Long | CESCO | Trưởng bộ phận bán hàng kỹ thuật End user | Service sales manageriem | "
+        "Your trustworthy partner | Hp: (+84) 918 196 121 | Email: long.vuocesco..com.vn | Công Ty TNHH CESCO | "
+        "CESCO CO., Ltd | Trụ Sở | Số 6 Đường số 2, Kp.5 | P.Hiệp Bình Phước, TP. Thủ Đức, Tp.HCM | ĐT/Fax | "
+        "+84 28 3727 3079 | www.cesco.com.vn | MST | 0312522881"
+    ))
+    assert r["email"] == "long.vu@cesco.com.vn"
+    assert r["website"] == "www.cesco.com.vn"
+    assert r["name"] == "Vũ Anh Kim Long"
+    assert r["company"] == "Công Ty TNHH CESCO"
+    assert r["mobile"] == "0918 196 121"
+    assert r["phone"] == r["fax"] == "028 3727 3079"
+    assert "0312" not in r["note"]
+
+    r = parse_card(_lines("Lê Văn Bình | Email: binh.le Ocesco.com.vn | www.cesco.com.vn"))
+    assert r["email"] == "binh.le@cesco.com.vn"
