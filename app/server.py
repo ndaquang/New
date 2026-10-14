@@ -11,6 +11,7 @@ import time
 import traceback
 from pathlib import Path
 
+import cv2
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -19,6 +20,7 @@ from pydantic import BaseModel
 
 from .engine.classify import DEFAULT_FILE as DEFAULT_CATEGORIES, load_categories, sync_user_categories
 from .engine.pipeline import FIELDS, analyze_card, fields_from_text, process_image
+from .dw_export import export_dw
 from .export import export_vcf, export_xlsx
 from .learn import Learner
 from .storage import Store, default_data_dir
@@ -27,8 +29,24 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 40 * 1024 * 1024
 
 
+class InProcessRunner:
+    """Chạy bộ nhận dạng ngay trong tiến trình này (dùng cho kiểm thử)."""
+
+    def __init__(self, use_vietocr: bool):
+        from .engine.ocr import OCREngine
+
+        self.engine = OCREngine(use_vietocr=use_vietocr)
+        self.recognizer, self.load_error, self.error, self.restarts = self.engine.recognizer, self.engine.load_error, "", 0
+
+    def run(self, kind, payload, timeout=None):
+        if kind == "process":
+            return process_image(self.engine, *payload)
+        img, cats = payload
+        return analyze_card(self.engine, img, self.engine.read_lines(img), cats)
+
+
 class State:
-    engine = None
+    runner = None
     engine_error = ""
     ready = threading.Event()
     store: Store | None = None
@@ -43,11 +61,18 @@ def categories() -> list[dict]:
     return load_categories(state.categories_file)
 
 
-def _load_engine(use_vietocr: bool):
+def _load_engine(use_vietocr: bool, use_worker: bool, timeout: float):
     try:
-        from .engine.ocr import OCREngine
+        if use_worker:
+            from .worker import OCRWorker
 
-        state.engine = OCREngine(use_vietocr=use_vietocr)
+            w = OCRWorker(use_vietocr=use_vietocr, timeout=timeout)
+            w.start()
+            if w.error:
+                raise RuntimeError(w.error)
+            state.runner = w
+        else:
+            state.runner = InProcessRunner(use_vietocr)
     except Exception as exc:
         state.engine_error = f"{type(exc).__name__}: {exc}"
         traceback.print_exc()
@@ -55,7 +80,8 @@ def _load_engine(use_vietocr: bool):
         state.ready.set()
 
 
-def init(data_dir: Path | None = None, use_vietocr: bool = True, background: bool = True):
+def init(data_dir: Path | None = None, use_vietocr: bool = True, background: bool = True,
+         use_worker: bool = False, timeout: float = 180.0):
     data_dir = Path(data_dir or default_data_dir())
     state.store = Store(data_dir)
     state.categories_file = data_dir / "phan-loai.json"
@@ -64,10 +90,12 @@ def init(data_dir: Path | None = None, use_vietocr: bool = True, background: boo
         shutil.copy(DEFAULT_CATEGORIES, state.categories_file)
     elif sync_user_categories(state.categories_file):
         print("Đã cập nhật từ khóa phân loại mới vào", state.categories_file, flush=True)
+    state.ready.clear()
+    args = (use_vietocr, use_worker, timeout)
     if background:
-        threading.Thread(target=_load_engine, args=(use_vietocr,), daemon=True).start()
+        threading.Thread(target=_load_engine, args=args, daemon=True).start()
     else:
-        _load_engine(use_vietocr)
+        _load_engine(*args)
 
 
 def open_path(path: Path):
@@ -84,10 +112,10 @@ def open_path(path: Path):
         print("Không mở được", path, exc, flush=True)
 
 
-def get_engine():
-    if not state.ready.wait(timeout=600) or state.engine is None:
+def get_runner():
+    if not state.ready.wait(timeout=900) or state.runner is None:
         raise HTTPException(503, f"Bộ nhận dạng chưa sẵn sàng. {state.engine_error}")
-    return state.engine
+    return state.runner
 
 
 app = FastAPI(title="Danh thiếp")
@@ -95,43 +123,75 @@ app = FastAPI(title="Danh thiếp")
 
 @app.get("/api/status")
 def status():
-    e = state.engine
+    r = state.runner
     return {
-        "ready": state.ready.is_set() and e is not None,
+        "ready": state.ready.is_set() and r is not None,
         "loading": not state.ready.is_set(),
-        "error": state.engine_error,
-        "recognizer": e.recognizer if e else "",
-        "vietocr_error": e.load_error if e else "",
+        "error": state.engine_error or (r.error if r else ""),
+        "recognizer": r.recognizer if r else "",
+        "vietocr_error": r.load_error if r else "",
+        "restarts": r.restarts if r else 0,
         "data_dir": str(state.store.dir),
         "categories": [c["name"] for c in categories()],
     }
 
 
+class FileCheck(BaseModel):
+    fingerprints: list[str]
+
+
+@app.post("/api/files/check")
+def files_check(body: FileCheck):
+    """Ảnh nào đã xử lý xong ở lần trước (chạy lại sau khi treo/tắt app thì bỏ qua)."""
+    return {"done": state.store.done_files(body.fingerprints)}
+
+
+@app.post("/api/files/forget")
+def files_forget():
+    state.store.forget_files()
+    return {"ok": True}
+
+
 @app.post("/api/process")
-def process(file: UploadFile = File(...), batch: str = Form("")):
-    engine = get_engine()
+def process(file: UploadFile = File(...), batch: str = Form(""), fingerprint: str = Form(""),
+            skip_duplicates: str = Form("")):
+    runner = get_runner()
+    name = file.filename or ""
     data = file.file.read(MAX_UPLOAD + 1)
     if len(data) > MAX_UPLOAD:
+        state.store.record_file(fingerprint, name, "error", message="quá lớn")
         raise HTTPException(413, "Ảnh quá lớn (tối đa 40 MB).")
     t0 = time.time()
     try:
-        found = process_image(engine, data, categories())
+        found = runner.run("process", (data, categories()))
     except Exception as exc:
         traceback.print_exc()
-        raise HTTPException(400, f"Không xử lý được ảnh: {exc}") from exc
-    saved = []
+        state.store.record_file(fingerprint, name, "error", message=str(exc)[:300])
+        code = 504 if type(exc).__name__ == "WorkerTimeout" else 400
+        raise HTTPException(code, f"Không xử lý được ảnh: {exc}") from exc
+    saved, merged = [], []
     for info in found:
         info["auto_fields"] = json.dumps({f: info.get(f, "") for f in FIELDS + ["category"]}, ensure_ascii=False)
         learned = state.learner.apply(info)
         if learned:
             print(f"Áp dụng điều đã học: {learned} cho {info.get('company')}", flush=True)
-        dup = state.store.find_duplicate(info)
-        if dup:
-            info["review"] = ", ".join(x for x in (info.get("review"), f"có thể trùng với {dup}") if x)
-        info["source_file"] = file.filename or ""
+        dup_id = state.store.find_duplicate(info, return_id=True)
+        if dup_id and skip_duplicates == "1":
+            # Bỏ thẻ trùng: chỉ bổ sung ô còn trống của thẻ đã có, không lưu thêm thẻ mới.
+            old = state.store.get(dup_id)
+            fill = {f: info[f] for f in FIELDS if info.get(f) and not old.get(f)}
+            if fill:
+                state.store.update(dup_id, fill)
+            merged.append(state.store.get(dup_id))
+            continue
+        if dup_id:
+            dup = state.store.get(dup_id)
+            info["review"] = ", ".join(x for x in (info.get("review"), f"có thể trùng với {dup.get('name') or dup_id}") if x)
+        info["source_file"] = name
         info["batch"] = batch
         saved.append(state.store.add(info))
-    return {"cards": saved, "seconds": round(time.time() - t0, 1)}
+    state.store.record_file(fingerprint, name, "ok", cards=len(saved) + len(merged))
+    return {"cards": saved, "merged": merged, "seconds": round(time.time() - t0, 1)}
 
 
 @app.get("/api/cards")
@@ -178,18 +238,19 @@ def set_category(body: Ids):
 @app.post("/api/cards/{card_id}/rotate")
 def rotate_card(card_id: str):
     """Xoay ảnh thẻ 90° theo chiều kim đồng hồ rồi nhận dạng lại."""
-    import cv2
 
     card = state.store.get(card_id)
     if not card:
         raise HTTPException(404, "Không tìm thấy danh thiếp")
-    engine = get_engine()
+    runner = get_runner()
     path = state.store.image_path(card_id)
     img = cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_COLOR)
     img = np.ascontiguousarray(np.rot90(img, k=-1))
     state.store.save_image(card_id, img)
-    lines = engine.read_lines(img)
-    info = analyze_card(engine, img, lines, categories())
+    try:
+        info = runner.run("read", (img, categories()), timeout=120)
+    except Exception as exc:
+        raise HTTPException(400, f"Không đọc lại được: {exc}") from exc
     keep_note = card.get("note")
     state.learner.apply(info)
     card = state.store.replace_analysis(card_id, info)
@@ -209,8 +270,8 @@ def reanalyze():
     changed_cards = changed_fields = 0
     for c in state.store.all():
         lines = [t for t in (c.get("raw_text") or "").split("\n") if t.strip()]
-        if not lines:
-            continue
+        if not lines or c.get("status") == "confirmed":
+            continue  # thẻ đã xác nhận là dữ liệu chuẩn, không tự sửa nữa
         new = fields_from_text(lines, c.get("qr_text") or "", cats)
         state.learner.apply(new)
         try:
@@ -238,6 +299,45 @@ def reanalyze():
     return {"cards": changed_cards, "fields": changed_fields}
 
 
+class Confirm(BaseModel):
+    ids: list[str]
+    confirmed: bool = True
+
+
+@app.post("/api/cards/confirm")
+def confirm_cards(body: Confirm):
+    """Xác nhận các thẻ đã kiểm tra (dữ liệu chuẩn để xuất vào kho dữ liệu)."""
+    state.store.confirm(body.ids, body.confirmed)
+    return [state.store.get(i) for i in body.ids]
+
+
+@app.get("/api/duplicates")
+def duplicates():
+    groups = state.store.duplicate_groups()
+    return {"groups": [[{"id": c["id"], "name": c["name"], "company": c["company"], "email": c["email"],
+                         "mobile": c["mobile"], "status": c.get("status", "")} for c in g] for g in groups],
+            "extra_cards": sum(len(g) - 1 for g in groups)}
+
+
+@app.post("/api/duplicates/merge")
+def merge_duplicates():
+    """Bỏ thẻ trùng: mỗi nhóm giữ 1 thẻ (đã xác nhận / đầy đủ nhất), gộp ô còn trống, xóa thẻ thừa."""
+    groups = state.store.duplicate_groups()
+    removed = 0
+    for g in groups:
+        state.store.merge_group(g, FIELDS)
+        removed += len(g) - 1
+    return {"groups": len(groups), "removed": removed}
+
+
+@app.get("/api/cards/{card_id}/thumb")
+def card_thumb(card_id: str):
+    path = state.store.thumb_path(card_id)
+    if not path.exists():
+        raise HTTPException(404)
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/cards/{card_id}/image")
 def card_image(card_id: str):
     path = state.store.image_path(card_id)
@@ -250,6 +350,8 @@ class ExportReq(BaseModel):
     format: str = "xlsx"
     ids: list[str] = []
     images: bool = True
+    only_confirmed: bool = False
+    incremental: bool = False
 
 
 @app.post("/api/export")
@@ -262,6 +364,19 @@ def export(body: ExportReq):
         raise HTTPException(400, "Chưa có danh thiếp nào để xuất.")
     cards.sort(key=lambda c: (c.get("category") or "", (c.get("company") or "").lower(), (c.get("name") or "").lower()))
     stamp = time.strftime("%Y-%m-%d_%H%M")
+    if body.format == "dw":
+        started = time.time()
+        since = float(state.store.get_meta("dw_last_export", "0") or 0) if body.incremental else 0
+        picked = [c for c in cards if (not body.only_confirmed or c.get("status") == "confirmed")
+                  and (c.get("updated_at") or 0) > since]
+        if not picked:
+            raise HTTPException(400, "Không có thẻ nào phù hợp để xuất (chưa xác nhận, hoặc không có thay đổi từ lần xuất trước).")
+        note = ("Chỉ gồm thẻ đã xác nhận. " if body.only_confirmed else "Gồm cả thẻ chưa xác nhận (cột status). ") + \
+               (f"Chỉ gồm thẻ thay đổi sau lần xuất trước ({time.strftime('%d/%m/%Y %H:%M', time.localtime(since))})." if since else "Toàn bộ dữ liệu.")
+        path = export_dw(picked, state.store.cards_dir, state.store.exports_dir / f"kho-du-lieu_{stamp}", body.images, note)
+        state.store.set_meta("dw_last_export", str(started))
+        open_path(path)
+        return {"path": str(path), "count": len(picked)}
     if body.format == "calib":
         path = export_calibration(cards, state.store.exports_dir / f"goi-hieu-chinh_{stamp}.zip")
         if path is None:

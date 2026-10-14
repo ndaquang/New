@@ -46,7 +46,7 @@ Mỗi lần code được cập nhật, GitHub tự build bản Windows và ch�
 | Điền nhanh từ chữ đã đọc | Bấm vào ô cần điền, rồi bấm dòng chữ ở mục **Chữ đọc được**. |
 | Thẻ bị xoay sai | Bấm **↻ Xoay 90° và đọc lại**. |
 | Lọc / tìm | Bấm nhóm ở cột trái (hoặc **⚠ Cần kiểm tra**). Ô tìm kiếm gõ không dấu cũng được, tìm được cả theo số điện thoại. |
-| Đổi phân loại / xóa hàng loạt | Tick chọn các dòng rồi dùng thanh công cụ phía trên bảng. |
+| Xác nhận / đổi phân loại / xóa hàng loạt | Tick chọn các dòng rồi dùng thanh công cụ phía trên bảng. |
 | Xuất Excel | **📊 Xuất Excel**: file được lưu và tự mở. Muốn bỏ ảnh trong file Excel cho nhẹ: **⋯ → bỏ tick "Chèn ảnh thẻ vào Excel"**. |
 | Nhập vào Outlook / điện thoại | **👥 Xuất vCard**, rồi mở file `.vcf` bằng Outlook, hoặc gửi sang điện thoại và mở. |
 | Sửa nhóm phân loại | **⋯ → Sửa danh sách phân loại…** Mở file bằng Notepad, sửa tên nhóm hoặc từ khóa, lưu lại rồi khởi động lại app. |
@@ -55,6 +55,28 @@ Mỗi lần code được cập nhật, GitHub tự build bản Windows và ch�
 - Đặt thẻ trên **nền tối hoặc khác màu thẻ**, chụp đủ sáng, không lóa.
 - Với máy scan, có thể xếp nhiều thẻ trên mặt kính, **để cách nhau khoảng 1 cm**.
 - Ảnh từ điện thoại dùng trực tiếp được, không cần cắt trước.
+
+## Quy trình làm việc khuyên dùng
+
+1. **Quét**: chọn cả thư mục ảnh. Bật **⋯ → "Tự bỏ thẻ trùng khi quét"** nếu bạn hay chụp một thẻ nhiều lần.
+2. **Kiểm tra & xác nhận**: bấm mục **○ Chưa xác nhận** ở cột trái, mở thẻ đầu tiên, so ảnh với thông tin, sửa nếu sai, rồi bấm **✓ Xác nhận & sang thẻ tiếp** (hoặc **Ctrl + Enter**). App tự mở thẻ chưa xác nhận kế tiếp. Muốn xác nhận nhiều thẻ một lúc: tick chọn, rồi bấm **✓ Xác nhận** ở thanh phía trên bảng.
+   - Thẻ đã xác nhận có dấu ✓ xanh và **không bị "Phân tích lại toàn bộ" sửa đổi**.
+3. **Bỏ thẻ trùng**: **⋯ → 🧹 Tìm & bỏ thẻ trùng**. Thẻ trùng là thẻ có cùng email, cùng số di động, hoặc cùng họ tên và công ty. Mỗi nhóm giữ 1 thẻ (ưu tiên thẻ đã xác nhận, rồi thẻ đầy đủ nhất), ô còn trống được điền từ các thẻ kia, các thẻ thừa bị xóa. App hiện danh sách để bạn đồng ý trước khi làm.
+4. **Xuất dữ liệu**:
+   - **📊 Xuất Excel**: để xem và kiểm tra (có cột *Trạng thái* và *Chữ nhận dạng*).
+   - **⋯ → 🗄️ Xuất dữ liệu cho kho dữ liệu**: tạo thư mục `xuat-file\kho-du-lieu_<ngày giờ>` gồm:
+     - `cards.csv`, `cards.jsonl`: dữ liệu, tên cột chuẩn (snake_case), khóa chính `card_id`, số điện thoại thêm dạng quốc tế `+84…`, thời gian chuẩn ISO (UTC);
+     - `schema.json`, `schema_bq.json`, `create_table.sql`: định nghĩa bảng `business_cards`;
+     - `README.md`: hướng dẫn nạp vào BigQuery / PostgreSQL…
+   - Tùy chọn: **chỉ thẻ đã xác nhận** (mặc định), **chỉ phần mới/thay đổi từ lần xuất trước** (để nạp bổ sung bằng MERGE/UPSERT theo `card_id`), **kèm ảnh thẻ**.
+
+## Khi app bị treo / chạy lại
+
+- Mỗi ảnh được xử lý trong một **tiến trình riêng**. Ảnh nào làm treo quá **180 giây** sẽ bị dừng, bộ nhận dạng **tự khởi động lại** và các ảnh sau vẫn chạy tiếp. Ảnh lỗi được liệt kê; bấm **↻ Thử lại N ảnh lỗi** để chạy lại riêng các ảnh đó.
+- Nếu cả cửa sổ app bị đơ hoặc bạn lỡ tắt giữa chừng: đóng app (đóng cả cửa sổ đen), mở lại, rồi **chọn lại đúng thư mục ảnh đó**. App **tự bỏ qua các ảnh đã xử lý xong** và chỉ làm tiếp phần còn lại. Bạn có thể tắt tính năng này ở **⋯ → Bỏ qua ảnh đã xử lý ở lần trước**, hoặc xóa danh sách ảnh đã xử lý ở **⋯ → Quên danh sách ảnh đã xử lý**.
+- Bảng danh sách dùng ảnh thu nhỏ và chỉ vẽ lại khoảng 1 lần/giây khi đang quét, để cửa sổ không đơ với vài trăm thẻ.
+- Mọi hoạt động và lỗi được ghi vào `Documents\DanhThiep\nhat-ky.log`. Nếu vẫn gặp treo, gửi file này để tìm nguyên nhân.
+- Muốn đổi giới hạn 180 giây (ví dụ máy chậm): chạy `DanhThiep.exe --timeout 300`.
 
 ## Hiệu chỉnh để app đọc chính xác hơn
 
@@ -78,6 +100,7 @@ Mỗi lần code được cập nhật, GitHub tự build bản Windows và ch�
 - `anh-the\`: ảnh từng thẻ đã cắt.
 - `xuat-file\`: các file Excel / vCard đã xuất.
 - `phan-loai.json`: nhóm phân loại và từ khóa.
+- `nhat-ky.log`: nhật ký hoạt động và lỗi.
 
 ---
 
@@ -102,6 +125,8 @@ app/engine/parser.py       Tách họ tên, chức vụ, công ty, SĐT, email, 
 app/engine/classify.py     Phân loại theo nhóm ngành (app/config/categories.json)
 app/storage.py             Lưu trữ SQLite + ảnh thẻ
 app/export.py              Xuất Excel (kèm ảnh) và vCard
+app/dw_export.py           Xuất dữ liệu chuẩn cho kho dữ liệu (CSV, JSONL, schema, SQL)
+app/worker.py              Chạy bộ nhận dạng ở tiến trình riêng, tự khởi động lại khi treo
 app/static/                Giao diện
 app/samples.py             Ảnh danh thiếp mẫu để tự kiểm tra
 tests/                     Kiểm thử:  python -m pytest tests

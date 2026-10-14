@@ -50,7 +50,7 @@ def test_process_export_flow(client, tmp_path):
     x = client.post("/api/export", json={"format": "xlsx"}).json()
     wb = load_workbook(x["path"])
     ws = wb["Danh sách"]
-    assert ws.max_row == 5 and ws["D1"].value == "Họ tên"
+    assert ws.max_row == 5 and ws["E1"].value == "Họ tên"
     assert len(ws._images) == 4
     assert wb["Tổng hợp"]["B" + str(wb["Tổng hợp"].max_row)].value == 4
     v = client.post("/api/export", json={"format": "vcf", "ids": [cid]}).json()

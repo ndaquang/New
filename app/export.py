@@ -12,7 +12,7 @@ from openpyxl.utils import get_column_letter
 from PIL import Image
 
 XLSX_COLUMNS = [
-    ("STT", None, 5), ("Ảnh", None, 26), ("Phân loại", "category", 22), ("Họ tên", "name", 22),
+    ("STT", None, 5), ("Ảnh", None, 26), ("Trạng thái", "status", 13), ("Phân loại", "category", 22), ("Họ tên", "name", 22),
     ("Chức vụ", "title", 26), ("Công ty", "company", 30), ("Di động", "mobile", 14), ("Điện thoại", "phone", 14),
     ("Fax", "fax", 14), ("Email", "email", 28), ("Website", "website", 22), ("Địa chỉ", "address", 40),
     ("Địa chỉ 2", "address2", 40), ("Ghi chú", "note", 24), ("Cần kiểm tra", "review", 16),
@@ -51,6 +51,8 @@ def export_xlsx(cards: list[dict], images_dir: Path, out_path: Path, with_images
         for col, (label, key, _) in enumerate(XLSX_COLUMNS, 1):
             if label == "STT":
                 val = i
+            elif key == "status":
+                val = "Đã xác nhận" if card.get("status") == "confirmed" else "Chưa xác nhận"
             elif key == "created_at":
                 val = datetime.fromtimestamp(card.get("created_at") or 0).strftime("%d/%m/%Y %H:%M")
             else:
@@ -68,7 +70,7 @@ def export_xlsx(cards: list[dict], images_dir: Path, out_path: Path, with_images
         else:
             ws.row_dimensions[r].height = 48
 
-    ws.freeze_panes = "D2"
+    ws.freeze_panes = "E2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(XLSX_COLUMNS))}{len(cards) + 1}"
 
     # Trang tổng hợp theo nhóm phân loại

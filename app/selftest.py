@@ -70,6 +70,21 @@ def _run() -> int:
         for want in checks:
             if not any(all(c.get(k) == v for k, v in want.items()) for c in cards):
                 failures.append(f"{name}: không đọc đúng {want}")
+    # Kiểm tra bộ nhận dạng chạy ở tiến trình riêng (cách app thật dùng, có tự khởi động lại khi treo).
+    try:
+        from .worker import OCRWorker
+
+        t = time.time()
+        w = OCRWorker(timeout=600)
+        w.start()
+        name = "anh_chup_ban_go.jpg"
+        cards = w.run("process", (encode(name, SAMPLES[name]()), cats))
+        w.stop()
+        print(f"\n== Tiến trình riêng: {len(cards)} thẻ, {time.time() - t:.1f}s ({w.recognizer})", flush=True)
+        if len(cards) != 1 or w.recognizer != engine.recognizer:
+            failures.append(f"Tiến trình riêng: {len(cards)} thẻ, bộ đọc {w.recognizer} {w.error}")
+    except Exception as exc:
+        failures.append(f"Tiến trình riêng lỗi: {type(exc).__name__}: {exc}")
     if engine.recognizer != "vietocr":
         failures.append("Không nạp được VietOCR: " + engine.load_error)
     for f in failures:

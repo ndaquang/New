@@ -26,6 +26,13 @@
         <button data-open="data">Mở thư mục dữ liệu</button>
         <button data-open="exports">Mở thư mục file đã xuất</button>
         <button data-open="categories">Sửa danh sách phân loại…</button>
+        <button id="dedupe">🧹 Tìm &amp; bỏ thẻ trùng…</button>
+        <button id="export-dw">🗄️ Xuất dữ liệu cho kho dữ liệu (CSV / JSON)…</button>
+        <hr>
+        <label class="check"><input type="checkbox" id="opt-skip-done"> Bỏ qua ảnh đã xử lý ở lần trước</label>
+        <label class="check"><input type="checkbox" id="opt-skip-dup"> Tự bỏ thẻ trùng khi quét</label>
+        <button id="forget-files">Quên danh sách ảnh đã xử lý</button>
+        <hr>
         <button id="reanalyze">Phân tích lại toàn bộ (dùng bộ tách thông tin mới)</button>
         <button id="export-calib">Xuất gói hiệu chỉnh (các thẻ đã sửa)…</button>
         <label class="check"><input type="checkbox" id="opt-images" checked> Chèn ảnh thẻ vào Excel</label>
@@ -34,7 +41,7 @@
   </header>
 
   <div id="progress" class="progress hidden">
-    <div class="progress-text"><span id="progress-label"></span><button class="link" id="progress-stop">Dừng</button></div>
+    <div class="progress-text"><span id="progress-label"></span><span><button class="link hidden" id="progress-retry"></button> <button class="link" id="progress-stop">Dừng</button></span></div>
     <div class="bar"><div id="progress-bar"></div></div>
     <ul id="progress-errors" class="errors"></ul>
   </div>
@@ -50,6 +57,7 @@
         <input id="search" type="search" placeholder="Tìm theo tên, công ty, số điện thoại, email…">
         <div id="bulk" class="bulk hidden">
           <span id="bulk-count"></span>
+          <button class="btn small primary" id="bulk-confirm">✓ Xác nhận</button>
           <select id="bulk-cat"><option value="">Đổi phân loại…</option></select>
           <button class="btn small" id="bulk-export">Xuất mục đã chọn</button>
           <button class="btn small danger" id="bulk-delete">Xóa</button>
@@ -90,6 +98,10 @@
         <button class="btn icon" id="d-close" aria-label="Đóng">✕</button>
       </div>
       <img id="d-img" class="d-img" alt="Ảnh danh thiếp">
+      <div class="d-confirm-row">
+        <span id="d-status" class="badge">Chưa xác nhận</span>
+        <button class="btn primary" id="d-confirm" title="Ctrl + Enter">✓ Xác nhận &amp; sang thẻ tiếp</button>
+      </div>
       <div class="d-actions">
         <button class="btn small" id="d-rotate">↻ Xoay 90° và đọc lại</button>
         <span id="d-source" class="muted small"></span>
@@ -118,6 +130,20 @@
         <button class="btn small danger" id="d-delete">Xóa danh thiếp</button>
       </div>
     </aside>
+  </div>
+
+  <div id="dw-dialog" class="modal hidden">
+    <div class="modal-box">
+      <h3>Xuất dữ liệu cho kho dữ liệu</h3>
+      <p class="muted small">Tạo thư mục gồm <b>cards.csv</b>, <b>cards.jsonl</b>, <b>schema.json</b>, <b>create_table.sql</b> và hướng dẫn nạp. Tên cột chuẩn hóa (snake_case), số điện thoại có thêm dạng quốc tế +84…, thời gian theo chuẩn ISO (UTC).</p>
+      <label class="check"><input type="checkbox" id="dw-confirmed" checked> Chỉ thẻ đã xác nhận</label>
+      <label class="check"><input type="checkbox" id="dw-incremental"> Chỉ thẻ mới/thay đổi từ lần xuất trước (nạp bổ sung)</label>
+      <label class="check"><input type="checkbox" id="dw-images"> Kèm ảnh thẻ</label>
+      <div class="modal-actions">
+        <button class="btn" id="dw-cancel">Hủy</button>
+        <button class="btn primary" id="dw-go">Xuất</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>

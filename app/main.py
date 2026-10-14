@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
 
 
 def _free_port() -> int:
@@ -25,6 +26,50 @@ def _wait_port(port: int, timeout: float = 30):
     return False
 
 
+class _Tee:
+    """Ghi đồng thời ra cửa sổ đen và file nhật ký (để tìm nguyên nhân khi app bị treo/lỗi)."""
+
+    def __init__(self, stream, log):
+        self.stream, self.log = stream, log
+
+    def write(self, s):
+        for out in (self.stream, self.log):
+            try:
+                out.write(s)
+                out.flush()
+            except Exception:
+                pass
+        return len(s)
+
+    def isatty(self):
+        return False
+
+    def __getattr__(self, name):  # encoding, fileno... lấy từ luồng gốc
+        return getattr(self.stream, name)
+
+    def flush(self):
+        for out in (self.stream, self.log):
+            try:
+                out.flush()
+            except Exception:
+                pass
+
+
+def _setup_log(data_dir: Path) -> Path:
+    import faulthandler
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    path = data_dir / "nhat-ky.log"
+    if path.exists() and path.stat().st_size > 5_000_000:
+        path.replace(data_dir / "nhat-ky.cu.log")
+    log = open(path, "a", encoding="utf-8", buffering=1)
+    log.write(f"\n===== Mở app {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n")
+    sys.stdout = _Tee(sys.stdout, log)
+    sys.stderr = _Tee(sys.stderr, log)
+    faulthandler.enable(file=log)  # nếu app sập, ghi lại vị trí lỗi
+    return path
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -34,6 +79,7 @@ def main(argv=None):
     ap.add_argument("--browser", action="store_true", help="mở bằng trình duyệt thay vì cửa sổ riêng")
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--data", help="thư mục lưu dữ liệu (mặc định Documents/DanhThiep)")
+    ap.add_argument("--timeout", type=float, default=180, help="số giây tối đa cho một ảnh trước khi coi là treo")
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -44,8 +90,12 @@ def main(argv=None):
     import uvicorn
 
     from . import server
+    from .storage import default_data_dir
 
-    server.init(args.data)
+    log_path = _setup_log(Path(args.data) if args.data else default_data_dir())
+    print(f"Nhật ký hoạt động: {log_path}", flush=True)
+    # Bộ nhận dạng chạy ở tiến trình riêng: ảnh nào làm treo quá thời gian thì tự khởi động lại.
+    server.init(args.data, use_worker=True, timeout=args.timeout)
     port = args.port or _free_port()
     config = uvicorn.Config(server.app, host="127.0.0.1", port=port, log_level="warning")
     srv = uvicorn.Server(config)

@@ -9,12 +9,20 @@ DANH THIẾP - HƯỚNG DẪN NHANH
    - Cửa sổ đen đi kèm là nhật ký hoạt động; đóng nó là thoát app.
 3. Bấm "+ Chọn ảnh" (chọn nhiều ảnh) hoặc "Chọn cả thư mục", hoặc kéo thả ảnh vào cửa sổ.
    App tự cắt từng danh thiếp, xoay thẳng, đọc chữ, tách thông tin và phân loại.
-4. Kiểm tra các dòng có dấu ⚠, bấm vào dòng để xem ảnh và sửa.
+4. Bấm "○ Chưa xác nhận" ở cột trái, mở từng thẻ, sửa nếu sai rồi bấm
+   "✓ Xác nhận & sang thẻ tiếp" (hoặc Ctrl + Enter).
+   Bỏ thẻ trùng: nút ⋯ -> "Tìm & bỏ thẻ trùng".
 5. Bấm "Xuất Excel" để có file danh sách (kèm ảnh thẻ), hoặc "Xuất vCard" để nhập vào
    Outlook / Danh bạ điện thoại / Google Contacts.
+   Dữ liệu cho kho dữ liệu: nút ⋯ -> "Xuất dữ liệu cho kho dữ liệu" (CSV + JSON + schema).
+
+NẾU APP BỊ TREO: đóng app, mở lại, chọn lại đúng thư mục ảnh - app tự bỏ qua ảnh đã
+xử lý và chạy tiếp phần còn lại. Ảnh nào treo quá 180 giây sẽ tự bị bỏ qua và báo lỗi.
+Nhật ký lỗi: Documents\DanhThiep\nhat-ky.log
 
 Dữ liệu được lưu tại: Documents\DanhThiep
   - danhthiep.db     : cơ sở dữ liệu (hãy sao lưu thư mục này định kỳ)
   - anh-the\         : ảnh từng danh thiếp đã cắt
   - xuat-file\       : các file Excel / vCard đã xuất
   - phan-loai.json   : danh sách nhóm phân loại và từ khóa (sửa được, mở bằng Notepad)
+  - nhat-ky.log      : nhật ký hoạt động / lỗi
